@@ -3,7 +3,7 @@
 import { useAppStore } from "@/store";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { motion } from "framer-motion";
-import { BookOpen, Check, CheckCircle2, ChevronRight, Clock, Crown, GraduationCap, X, XCircle, Settings2 } from "lucide-react";
+import { BookOpen, Check, CheckCircle2, ChevronRight, Clock, Crown, GraduationCap, X, XCircle, Settings2, MapPin } from "lucide-react";
 import { useMemo, useState } from "react";
 import Image from "next/image";
 
@@ -44,12 +44,22 @@ export default function AcademicsPage() {
     return courses.filter(c => myEnrollments.includes(c.id));
   }, [courses, myEnrollments]);
 
-  // Fetch today's enrolled courses
-  const todayCourses = useMemo(() => {
-    return myEnrolledCourses
-      .filter(c => c.dayOfWeek === currentDayName)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [myEnrolledCourses, currentDayName]);
+  const allMySessions = useMemo(() => {
+    const arr: { course: typeof courses[0], session: typeof courses[0]['sessions'][0] }[] = [];
+    myEnrolledCourses.forEach(course => {
+      (course.sessions || []).forEach(session => {
+        arr.push({ course, session });
+      });
+    });
+    return arr;
+  }, [myEnrolledCourses]);
+
+  // Fetch today's enrolled sessions
+  const todaySessions = useMemo(() => {
+    return allMySessions
+      .filter(s => s.session.dayOfWeek === currentDayName)
+      .sort((a, b) => a.session.startTime.localeCompare(b.session.startTime));
+  }, [allMySessions, currentDayName]);
 
   // Calculate Personal Stats
   const personalStats = useMemo(() => {
@@ -131,7 +141,7 @@ export default function AcademicsPage() {
                 )}
                 <span className={`text-xs font-bold mb-1 ${isEnrolled ? 'text-emerald-400' : 'text-gray-500'}`}>{course.code || 'NO-CODE'}</span>
                 <span className="font-bold text-white text-sm mb-2">{course.name}</span>
-                <span className="text-xs text-gray-400 font-medium">{course.creditHours} Credits</span>
+                <span className="text-xs text-gray-400 font-medium">{course.creditHours} Credits • {course.sessions?.length || 0} Sessions/wk</span>
               </motion.button>
             )
           })}
@@ -200,24 +210,40 @@ export default function AcademicsPage() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {todayCourses.length === 0 ? (
+                  {todaySessions.length === 0 ? (
                     <div className="bg-black/20 border border-dashed border-[#2a2d36] rounded-2xl p-8 text-center">
                       <p className="text-gray-400 font-medium">No enrolled classes scheduled for today.</p>
                       <p className="text-xs text-gray-500 mt-1">Enjoy your free day!</p>
                     </div>
                   ) : (
-                    todayCourses.map(course => {
+                    todaySessions.map(({ course, session }, idx) => {
+                      // Note: We use the course ID and date to find the attendance record. 
+                      // If there are multiple sessions for a course on the same day, they will all share the same attendance record.
                       const record = attendances.find(a => a.userId === currentUser.id && a.courseId === course.id && a.date === todayDateStr);
+                      
+                      let typeColor = 'bg-gray-500';
+                      let typeText = 'text-gray-400';
+                      let typeBorder = 'border-gray-500/20';
+                      if (session.type === 'Lecture') { typeColor = 'bg-emerald-500/10'; typeText = 'text-emerald-400'; typeBorder = 'border-emerald-500/20'; }
+                      else if (session.type === 'Practical') { typeColor = 'bg-blue-500/10'; typeText = 'text-blue-400'; typeBorder = 'border-blue-500/20'; }
+                      else if (session.type === 'Tutorial') { typeColor = 'bg-purple-500/10'; typeText = 'text-purple-400'; typeBorder = 'border-purple-500/20'; }
 
                       return (
-                        <div key={course.id} className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:bg-white/5">
+                        <div key={`${course.id}-${idx}`} className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:bg-white/5">
                           <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-emerald-400">{course.code}</span>
-                            <span className="font-bold text-white text-lg">{course.name}</span>
-                            <div className="flex items-center gap-3 text-sm font-medium text-gray-400">
-                              <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {course.startTime} - {course.endTime}</span>
-                              <span className="text-gray-500">•</span>
-                              <span className="text-emerald-400/80">{course.creditHours} Credits</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${typeColor} ${typeText} ${typeBorder}`}>{session.type}</span>
+                              <span className="text-xs font-bold text-gray-400">{course.code}</span>
+                            </div>
+                            <span className="font-bold text-white text-lg mt-1">{course.name}</span>
+                            <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-400 mt-1">
+                              <span className="flex items-center gap-1 text-[#00ff9d]"><Clock className="w-4 h-4" /> {session.startTime} - {session.endTime}</span>
+                              {session.room && (
+                                <>
+                                  <span className="text-gray-500">•</span>
+                                  <span className="flex items-center gap-1 text-gray-300"><MapPin className="w-3.5 h-3.5" /> {session.room}</span>
+                                </>
+                              )}
                             </div>
                           </div>
 
@@ -357,34 +383,43 @@ export default function AcademicsPage() {
         <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 lg:p-8">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 lg:gap-6">
             {daysOfWeek.map(day => {
-              const dayCourses = myEnrolledCourses
-                .filter(c => c.dayOfWeek === day)
-                .sort((a, b) => a.startTime.localeCompare(b.startTime));
+              const daySessions = allMySessions
+                .filter(s => s.session.dayOfWeek === day)
+                .sort((a, b) => a.session.startTime.localeCompare(b.session.startTime));
 
               return (
                 <div key={day} className="flex flex-col gap-3">
                   <h4 className="text-white/50 text-sm uppercase tracking-wider font-bold mb-2 pb-2 border-b border-[#2a2d36]">{day}</h4>
                   
-                  {dayCourses.length === 0 ? (
+                  {daySessions.length === 0 ? (
                     <div className="text-gray-500 text-xs italic opacity-50">No classes</div>
                   ) : (
-                    dayCourses.map(course => {
+                    daySessions.map(({ course, session }, idx) => {
                       let typeColor = 'bg-gray-500';
                       let typeLabel = 'U';
-                      if (course.type === 'Lecture') { typeColor = 'bg-emerald-500'; typeLabel = 'L'; }
-                      else if (course.type === 'Practical') { typeColor = 'bg-blue-500'; typeLabel = 'P'; }
-                      else if (course.type === 'Tutorial') { typeColor = 'bg-purple-500'; typeLabel = 'T'; }
+                      if (session.type === 'Lecture') { typeColor = 'bg-emerald-500'; typeLabel = 'L'; }
+                      else if (session.type === 'Practical') { typeColor = 'bg-blue-500'; typeLabel = 'P'; }
+                      else if (session.type === 'Tutorial') { typeColor = 'bg-purple-500'; typeLabel = 'T'; }
 
                       return (
-                        <div key={course.id} className="bg-[#131418] border border-white/5 rounded-[1rem] p-4 hover:bg-white/[0.02] hover:border-white/10 transition-all flex flex-col relative group overflow-hidden">
+                        <div key={`${course.id}-${idx}`} className="bg-[#131418] border border-white/5 rounded-[1rem] p-4 hover:bg-white/[0.02] hover:border-white/10 transition-all flex flex-col relative group overflow-hidden">
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`${typeColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center justify-center min-w-[20px]`}>{typeLabel}</span>
                             <span className="text-white/90 font-medium text-xs truncate">{course.code}</span>
                           </div>
                           <span className="text-white/50 text-[11px] leading-tight line-clamp-2" title={course.name}>{course.name}</span>
-                          <div className="mt-3 text-[#00ff9d] text-[11px] flex items-center gap-1 font-mono">
-                            <Clock size={12} />
-                            {course.startTime} - {course.endTime}
+                          
+                          <div className="mt-3 flex flex-col gap-1">
+                            <div className="text-[#00ff9d] text-[11px] flex items-center gap-1 font-mono">
+                              <Clock size={12} />
+                              {session.startTime} - {session.endTime}
+                            </div>
+                            {session.room && (
+                              <div className="text-gray-400 text-[10px] flex items-center gap-1">
+                                <MapPin size={10} />
+                                {session.room}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )

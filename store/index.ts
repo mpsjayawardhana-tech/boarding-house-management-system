@@ -88,15 +88,20 @@ export type InventoryCycleState = {
   userDebts: Record<string, number>; 
 };
 
+export type CourseSession = {
+  dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+  startTime: string;
+  endTime: string;
+  type: 'Lecture' | 'Practical' | 'Tutorial';
+  room: string;
+};
+
 export type Course = {
   id: string;
   code?: string;
   name: string;
-  type?: 'Lecture' | 'Practical' | 'Tutorial';
-  dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
-  startTime: string; // HH:mm format
-  endTime: string;   // HH:mm format
   creditHours: number;
+  sessions: CourseSession[];
 };
 
 export type Holiday = {
@@ -281,16 +286,83 @@ export const useAppStore = create<AppState>()(
           p2pDebts: [],
           boardingFees: {},
           courses: [
-            { id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', type: 'Lecture', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', creditHours: 3 },
-            { id: 'c2', code: 'CMIS 2123', name: 'Database Management System', type: 'Lecture', dayOfWeek: 'Monday', startTime: '13:00', endTime: '15:00', creditHours: 3 },
-            { id: 'c3', code: 'ELTN 2112', name: 'Electricity & Magnetism', type: 'Lecture', dayOfWeek: 'Tuesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-            { id: 'c4', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', type: 'Practical', dayOfWeek: 'Tuesday', startTime: '13:00', endTime: '16:00', creditHours: 1 },
-            { id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-            { id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '11:00', endTime: '13:00', creditHours: 2 },
-            { id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-            { id: 'c8', code: 'MATH 2114', name: 'Linear Algebra I', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '13:00', endTime: '16:00', creditHours: 3 },
-            { id: 'c9', code: 'STAT 2112', name: 'Statistical Inference I', type: 'Lecture', dayOfWeek: 'Friday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-            { id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', type: 'Lecture', dayOfWeek: 'Friday', startTime: '13:00', endTime: '15:00', creditHours: 2 }
+            {
+              id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', creditHours: 3,
+              sessions: [
+                { dayOfWeek: 'Monday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' },
+                { dayOfWeek: 'Tuesday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' },
+                { dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' },
+                { dayOfWeek: 'Thursday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' },
+                { dayOfWeek: 'Friday', startTime: '12:30', endTime: '14:30', type: 'Practical', room: 'Gp. IV' }
+              ]
+            },
+            {
+              id: 'c2', code: 'CMIS 2123', name: 'Database Management System', creditHours: 3,
+              sessions: [
+                { dayOfWeek: 'Monday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'MH' },
+                { dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' },
+                { dayOfWeek: 'Monday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'LR-07' },
+                { dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. II' },
+                { dayOfWeek: 'Thursday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' },
+                { dayOfWeek: 'Thursday', startTime: '15:30', endTime: '17:30', type: 'Practical', room: 'Gp. IV' }
+              ]
+            },
+            {
+              id: 'c3', code: 'MATH 2114', name: 'Linear Algebra I', creditHours: 3,
+              sessions: [
+                { dayOfWeek: 'Tuesday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'MH' },
+                { dayOfWeek: 'Wednesday', startTime: '07:30', endTime: '08:30', type: 'Tutorial', room: 'MH' },
+                { dayOfWeek: 'Friday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-09' }
+              ]
+            },
+            {
+              id: 'c4', code: 'STAT 2112', name: 'Statistical Inference I', creditHours: 2,
+              sessions: [
+                { dayOfWeek: 'Tuesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'MH' },
+                { dayOfWeek: 'Wednesday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' }
+              ]
+            },
+            {
+              id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', creditHours: 2,
+              sessions: [
+                { dayOfWeek: 'Tuesday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' },
+                { dayOfWeek: 'Thursday', startTime: '13:30', endTime: '14:30', type: 'Tutorial', room: 'Gp. I & II, LR-07' }
+              ]
+            },
+            {
+              id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', creditHours: 2,
+              sessions: [
+                { dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'LR-07' },
+                { dayOfWeek: 'Thursday', startTime: '14:30', endTime: '15:30', type: 'Tutorial', room: 'Gp. I & II, LR-07' }
+              ]
+            },
+            {
+              id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', creditHours: 2,
+              sessions: [
+                { dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'Gp. I & II' },
+                { dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' }
+              ]
+            },
+            {
+              id: 'c8', code: 'ELTN 2112', name: 'Electricity & Magnetism', creditHours: 2,
+              sessions: [
+                { dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: '' },
+                { dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-08' }
+              ]
+            },
+            {
+              id: 'c9', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', creditHours: 1,
+              sessions: [
+                { dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. I' },
+                { dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' }
+              ]
+            },
+            {
+              id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', creditHours: 2,
+              sessions: [
+                { dayOfWeek: 'Friday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'Mini Aud/LR 01/02/03' }
+              ]
+            }
           ],
           holidays: [],
           timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },
@@ -358,16 +430,83 @@ export const useAppStore = create<AppState>()(
       payments: [],
       boardingFees: {},
       courses: [
-        { id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', type: 'Lecture', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', creditHours: 3 },
-        { id: 'c2', code: 'CMIS 2123', name: 'Database Management System', type: 'Lecture', dayOfWeek: 'Monday', startTime: '13:00', endTime: '15:00', creditHours: 3 },
-        { id: 'c3', code: 'ELTN 2112', name: 'Electricity & Magnetism', type: 'Lecture', dayOfWeek: 'Tuesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-        { id: 'c4', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', type: 'Practical', dayOfWeek: 'Tuesday', startTime: '13:00', endTime: '16:00', creditHours: 1 },
-        { id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-        { id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '11:00', endTime: '13:00', creditHours: 2 },
-        { id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-        { id: 'c8', code: 'MATH 2114', name: 'Linear Algebra I', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '13:00', endTime: '16:00', creditHours: 3 },
-        { id: 'c9', code: 'STAT 2112', name: 'Statistical Inference I', type: 'Lecture', dayOfWeek: 'Friday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
-        { id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', type: 'Lecture', dayOfWeek: 'Friday', startTime: '13:00', endTime: '15:00', creditHours: 2 }
+        {
+          id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', creditHours: 3,
+          sessions: [
+            { dayOfWeek: 'Monday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' },
+            { dayOfWeek: 'Tuesday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' },
+            { dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' },
+            { dayOfWeek: 'Thursday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' },
+            { dayOfWeek: 'Friday', startTime: '12:30', endTime: '14:30', type: 'Practical', room: 'Gp. IV' }
+          ]
+        },
+        {
+          id: 'c2', code: 'CMIS 2123', name: 'Database Management System', creditHours: 3,
+          sessions: [
+            { dayOfWeek: 'Monday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'MH' },
+            { dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' },
+            { dayOfWeek: 'Monday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'LR-07' },
+            { dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. II' },
+            { dayOfWeek: 'Thursday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' },
+            { dayOfWeek: 'Thursday', startTime: '15:30', endTime: '17:30', type: 'Practical', room: 'Gp. IV' }
+          ]
+        },
+        {
+          id: 'c3', code: 'MATH 2114', name: 'Linear Algebra I', creditHours: 3,
+          sessions: [
+            { dayOfWeek: 'Tuesday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'MH' },
+            { dayOfWeek: 'Wednesday', startTime: '07:30', endTime: '08:30', type: 'Tutorial', room: 'MH' },
+            { dayOfWeek: 'Friday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-09' }
+          ]
+        },
+        {
+          id: 'c4', code: 'STAT 2112', name: 'Statistical Inference I', creditHours: 2,
+          sessions: [
+            { dayOfWeek: 'Tuesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'MH' },
+            { dayOfWeek: 'Wednesday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' }
+          ]
+        },
+        {
+          id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', creditHours: 2,
+          sessions: [
+            { dayOfWeek: 'Tuesday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' },
+            { dayOfWeek: 'Thursday', startTime: '13:30', endTime: '14:30', type: 'Tutorial', room: 'Gp. I & II, LR-07' }
+          ]
+        },
+        {
+          id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', creditHours: 2,
+          sessions: [
+            { dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'LR-07' },
+            { dayOfWeek: 'Thursday', startTime: '14:30', endTime: '15:30', type: 'Tutorial', room: 'Gp. I & II, LR-07' }
+          ]
+        },
+        {
+          id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', creditHours: 2,
+          sessions: [
+            { dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'Gp. I & II' },
+            { dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' }
+          ]
+        },
+        {
+          id: 'c8', code: 'ELTN 2112', name: 'Electricity & Magnetism', creditHours: 2,
+          sessions: [
+            { dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: '' },
+            { dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-08' }
+          ]
+        },
+        {
+          id: 'c9', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', creditHours: 1,
+          sessions: [
+            { dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. I' },
+            { dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' }
+          ]
+        },
+        {
+          id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', creditHours: 2,
+          sessions: [
+            { dayOfWeek: 'Friday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'Mini Aud/LR 01/02/03' }
+          ]
+        }
       ],
       holidays: [],
       timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },

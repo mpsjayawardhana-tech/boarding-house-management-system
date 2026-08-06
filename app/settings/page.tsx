@@ -39,11 +39,10 @@ export default function SettingsPage() {
   });
 
   const [newCourse, setNewCourse] = useState({
+    code: '',
     name: '',
-    dayOfWeek: 'Monday' as 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday',
-    startTime: '09:00',
-    endTime: '11:00',
-    creditHours: 2
+    creditHours: 2,
+    sessions: []
   });
 
   const [newHoliday, setNewHoliday] = useState({
@@ -561,11 +560,21 @@ export default function SettingsPage() {
                     onSubmit={(e) => {
                       e.preventDefault();
                       if (!newCourse.name) return;
-                      addCourse(newCourse);
-                      setNewCourse(prev => ({ ...prev, name: '' }));
+                      addCourse(newCourse as any);
+                      setNewCourse({ code: '', name: '', creditHours: 2, sessions: [] });
                     }}
                     className="flex flex-col gap-4 bg-[#090A0C]/50 p-4 rounded-2xl border border-white/5"
                   >
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-500 font-bold uppercase">Course Code</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. CMIS 2113"
+                        value={newCourse.code}
+                        onChange={e => setNewCourse({ ...newCourse, code: e.target.value })}
+                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                      />
+                    </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs text-gray-500 font-bold uppercase">Subject Name</label>
                       <input 
@@ -577,77 +586,38 @@ export default function SettingsPage() {
                         className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500 font-bold uppercase">Day</label>
-                        <select 
-                          value={newCourse.dayOfWeek}
-                          onChange={e => setNewCourse({ ...newCourse, dayOfWeek: e.target.value as any })}
-                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
-                        >
-                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => (
-                            <option key={d} value={d}>{d}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500 font-bold uppercase">Credits</label>
-                        <input 
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={newCourse.creditHours}
-                          onChange={e => setNewCourse({ ...newCourse, creditHours: parseInt(e.target.value) || 0 })}
-                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500 font-bold uppercase">Start Time</label>
-                        <input 
-                          required
-                          type="time"
-                          value={newCourse.startTime}
-                          onChange={e => setNewCourse({ ...newCourse, startTime: e.target.value })}
-                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <label className="text-xs text-gray-500 font-bold uppercase">End Time</label>
-                        <input 
-                          required
-                          type="time"
-                          value={newCourse.endTime}
-                          onChange={e => setNewCourse({ ...newCourse, endTime: e.target.value })}
-                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
-                        />
-                      </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-500 font-bold uppercase">Credits</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={newCourse.creditHours}
+                        onChange={e => setNewCourse({ ...newCourse, creditHours: parseInt(e.target.value) || 0 })}
+                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                      />
                     </div>
                     <button type="submit" className="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 py-2 rounded-xl font-bold transition-colors mt-2">
-                      Add Course
+                      Add Course Placeholder
                     </button>
+                    <p className="text-xs text-gray-500 text-center">Sessions can currently only be configured via the raw JSON dump.</p>
                   </form>
 
                   <div className="flex flex-col gap-4 mt-2">
-                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
-                      const dayCourses = courses.filter(c => c.dayOfWeek === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
-                      if (dayCourses.length === 0) return null;
-                      return (
-                        <div key={day} className="flex flex-col gap-2">
-                          <h4 className="text-sm font-bold text-gray-400 border-b border-[#2a2d36] pb-1">{day}</h4>
-                          {dayCourses.map(course => (
-                            <div key={course.id} className="flex items-center justify-between bg-[#090A0C]/50 p-3 rounded-xl border border-[#2a2d36]">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-white text-sm">{course.name}</span>
-                                <span className="text-xs text-gray-500">{course.startTime} - {course.endTime} • {course.creditHours} Credits</span>
-                              </div>
-                              <button onClick={() => removeCourse(course.id)} className="text-red-400 hover:text-red-300 p-1">✕</button>
+                    <h4 className="text-sm font-bold text-gray-400 border-b border-[#2a2d36] pb-1">All Courses</h4>
+                    <div className="flex flex-col gap-2">
+                      {courses.map(course => (
+                        <div key={course.id} className="flex flex-col bg-[#090A0C]/50 p-3 rounded-xl border border-[#2a2d36]">
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white text-sm">{course.code} - {course.name}</span>
+                              <span className="text-xs text-gray-500">{course.creditHours} Credits • {course.sessions?.length || 0} Sessions</span>
                             </div>
-                          ))}
+                            <button onClick={() => removeCourse(course.id)} className="text-red-400 hover:text-red-300 p-1">✕</button>
+                          </div>
                         </div>
-                      )
-                    })}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
