@@ -67,37 +67,37 @@ export function PerformanceGraph() {
         <ComposedChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#00ff9d" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#00ff9d" stopOpacity={0} />
+              <stop offset="5%" stopColor="#e2e8f0" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#e2e8f0" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis 
             dataKey="name" 
             axisLine={false} 
             tickLine={false} 
-            tick={{ fill: '#8b92a5', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font-space-mono)' }} 
+            tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }} 
             dy={10}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#1A1C1E', borderColor: '#00ff9d', borderRadius: '12px', boxShadow: '0 0 15px rgba(0,255,157,0.15)', color: '#fff', fontWeight: 600, fontFamily: 'var(--font-space-mono)' }}
+            contentStyle={{ backgroundColor: '#141618', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#fff', fontWeight: 500, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}
             itemStyle={{ color: '#fff' }}
-            cursor={{ stroke: '#2a2d36', strokeWidth: 1, strokeDasharray: '4 4' }}
+            cursor={{ stroke: 'rgba(255,255,255,0.05)', strokeWidth: 1, strokeDasharray: '4 4' }}
           />
           
           <Area 
             type="monotone" 
             dataKey="completed" 
-            stroke="#00ff9d" 
+            stroke="#e2e8f0" 
             strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorCompleted)" 
             name="Completed"
-            activeDot={{ r: 6, fill: '#00ff9d', stroke: '#1A1C1E', strokeWidth: 2, style: { filter: 'drop-shadow(0 0 8px rgba(0,255,157,0.8))' } }}
+            activeDot={{ r: 6, fill: '#e2e8f0', stroke: '#141618', strokeWidth: 2, style: { filter: 'drop-shadow(0 0 8px rgba(226,232,240,0.3))' } }}
           />
           <Line 
             type="monotone" 
             dataKey="assigned" 
-            stroke="#8b92a5" 
+            stroke="#64748b" 
             strokeDasharray="3 3" 
             strokeWidth={2}
             dot={false}

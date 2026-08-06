@@ -3,15 +3,27 @@
 import { useAppStore } from "@/store";
 import { CheckCircle2 } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useRef } from "react";
 
 export function BoardingFeeTracker({ isReadOnly = false }: { isReadOnly?: boolean }) {
   const { users, boardingFees, toggleBoardingFee, currentUserId, currentUserRole } = useAppStore();
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const currentMonthEl = document.getElementById('current-month-col');
+    if (currentMonthEl && scrollContainerRef.current) {
+      // Small timeout ensures layout is fully painted before scrolling
+      setTimeout(() => {
+        currentMonthEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }, 100);
+    }
+  }, []);
 
   return (
-    <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col gap-6 w-full">
+    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-[2rem] p-6 md:p-8 shadow-2xl flex flex-col gap-6 w-full hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300">
       <div className="flex justify-between items-center border-b border-[#2a2d36] pb-4">
         <div>
           <h3 className="font-extrabold text-xl tracking-tight text-white">
@@ -21,13 +33,17 @@ export function BoardingFeeTracker({ isReadOnly = false }: { isReadOnly?: boolea
         </div>
       </div>
       
-      <div className="overflow-x-auto pb-4">
+      <div className="overflow-x-auto pb-4" ref={scrollContainerRef}>
         <div className="min-w-max">
           {/* Header Row */}
           <div className="flex items-center gap-2 mb-4">
             <div className="w-48 shrink-0"></div> {/* Spacer for user column */}
             {months.map((m, i) => (
-              <div key={m} className={`w-10 text-center text-[10px] font-bold uppercase tracking-wider ${i === currentMonth ? 'text-emerald-400' : 'text-gray-500'}`}>
+              <div 
+                key={m} 
+                id={i === currentMonth ? 'current-month-col' : undefined}
+                className={`w-10 text-center text-[10px] font-bold uppercase tracking-wider ${i === currentMonth ? 'text-emerald-400' : 'text-gray-500'}`}
+              >
                 {m}
               </div>
             ))}

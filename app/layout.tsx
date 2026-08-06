@@ -1,19 +1,7 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Space_Mono } from "next/font/google";
 import "./globals.css";
 import { TopNav } from "@/components/TopNav";
 import { UndoToast } from "@/components/UndoToast";
-
-const spaceGrotesk = Space_Grotesk({ 
-  subsets: ["latin"],
-  variable: '--font-space-grotesk',
-});
-
-const spaceMono = Space_Mono({
-  weight: ['400', '700'],
-  subsets: ["latin"],
-  variable: '--font-space-mono',
-});
 
 export const metadata: Metadata = {
   title: "MS of PCG | Boarding House Manager",
@@ -27,9 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${spaceGrotesk.variable} ${spaceMono.variable} font-sans flex flex-col h-screen overflow-hidden bg-animated-gradient relative text-white`}>
+      <body className="font-sans flex flex-col h-screen overflow-hidden bg-[#0C0D0E] relative text-white/90">
         <TopNav />
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto w-full">
             {children}
           </div>

@@ -8,17 +8,20 @@ import { format } from "date-fns";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconMapper } from "@/components/IconMapper";
-import { CldUploadWidget } from 'next-cloudinary';
+import { UserProfileModal } from "@/components/UserProfileModal";
+import { motion } from "framer-motion";
 
 export default function SettingsPage() {
   const { 
     users, currentUserRole, toggleUserRole, updateUserAvatar, addUser, removeUser, updateUser,
     rosterConfig, updateRosterConfig,
     inventoryItems, inventoryCycles, forceNextCycle, revertPreviousCycle, adminEditProgress, addInventoryItem, removeInventoryItem, updateItemQuota,
-    resetAllData
+    resetAllData,
+    courses, holidays, timetableConfig, addCourse, removeCourse, addHoliday, removeHoliday, updateTimetableConfig
   } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<'profiles' | 'roster' | 'inventory' | 'fees' | 'danger'>('profiles');
+  const [activeTab, setActiveTab] = useState<'profiles' | 'roster' | 'inventory' | 'fees' | 'timetable' | 'danger'>('timetable');
+  const [activeUserModal, setActiveUserModal] = useState<string | null>(null);
   const [newUserName, setNewUserName] = useState('');
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuota, setNewItemQuota] = useState(1000);
@@ -33,6 +36,21 @@ export default function SettingsPage() {
     title: '',
     description: '',
     action: () => {}
+  });
+
+  const [newCourse, setNewCourse] = useState({
+    name: '',
+    dayOfWeek: 'Monday' as 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday',
+    startTime: '09:00',
+    endTime: '11:00',
+    creditHours: 2
+  });
+
+  const [newHoliday, setNewHoliday] = useState({
+    title: '',
+    startDate: format(new Date(), 'yyyy-MM-dd'),
+    endDate: format(new Date(), 'yyyy-MM-dd'),
+    isLongVacation: false
   });
 
   const openConfirm = (title: string, description: string, action: () => void) => {
@@ -109,6 +127,8 @@ export default function SettingsPage() {
     );
   }
 
+  console.log("Current Preset:", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
   return (
     <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -126,19 +146,27 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#2a2d36]">
-        <button onClick={() => setActiveTab('profiles')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'profiles' ? 'bg-[#181a1f] border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5'}`}>User Profiles</button>
-        <button onClick={() => setActiveTab('roster')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'roster' ? 'bg-[#181a1f] border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5'}`}>Roster Config</button>
-        <button onClick={() => setActiveTab('inventory')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'inventory' ? 'bg-[#181a1f] border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5'}`}>Inventory Config</button>
-        <button onClick={() => setActiveTab('fees')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'fees' ? 'bg-[#181a1f] border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5'}`}>Boarding Fees</button>
-        <button onClick={() => setActiveTab('danger')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'danger' ? 'bg-[#ff5a5a]/10 border-x border-t border-[#ff5a5a]/30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-[#ff5a5a]' : 'text-red-400 hover:bg-red-500/5'}`}>Danger Zone</button>
+        <button onClick={() => setActiveTab('profiles')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'profiles' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>User Profiles</button>
+        <button onClick={() => setActiveTab('roster')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'roster' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Roster Config</button>
+        <button onClick={() => setActiveTab('inventory')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'inventory' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Inventory Config</button>
+        <button onClick={() => setActiveTab('fees')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'fees' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Boarding Fees</button>
+        <button onClick={() => setActiveTab('timetable')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'timetable' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Timetable Setup</button>
+        <button onClick={() => setActiveTab('danger')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'danger' ? 'bg-[#ff5a5a]/10 border-x border-t border-[#ff5a5a]/30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-[#ff5a5a]' : 'text-red-400 hover:bg-red-500/5 whitespace-nowrap'}`}>Danger Zone</button>
       </div>
 
       <div className="w-full">
         
         {/* PROFILES TAB */}
+        {/* PROFILES TAB */}
         {activeTab === 'profiles' && (
-          <div className="bg-[#181a1f] rounded-b-3xl rounded-tr-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col gap-8 animate-in fade-in">
-            <div className="flex flex-col gap-2">
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col gap-2">
               <h3 className="font-extrabold text-xl tracking-tight text-white">Manage Boarders</h3>
               <p className="text-sm text-gray-400">Add new roommates or deactivate existing ones. Deactivated users are removed from rosters but their history remains.</p>
             </div>
@@ -162,62 +190,38 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {users.map(user => (
-                <div key={user.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-colors ${user.isActive ? 'bg-black/20 border-[#2a2d36]' : 'bg-[#23252b]/50 border-dashed border-[#2a2d36] opacity-75'}`}>
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#1C1E22] shadow-sm bg-[#23252b] group shrink-0">
-                      <Image src={user.avatar} alt={user.name} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        <Camera className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-white">{user.name}</span>
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">{user.isActive ? 'Active' : 'Deactivated'}</span>
-                    </div>
+                <div 
+                  key={user.id} 
+                  onClick={() => setActiveUserModal(user.id)}
+                  className={`flex items-center gap-4 p-4 rounded-2xl border cursor-pointer hover:-translate-y-0.5 transition-all duration-300 ${user.isActive ? 'bg-white/[0.02] hover:bg-white/[0.05] border-white/[0.05]' : 'bg-[#1A1D20]/50 border-dashed border-white/[0.02] opacity-50'}`}
+                >
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/[0.1] bg-[#141618] shrink-0">
+                    <Image src={user.avatar} alt={user.name} fill className="object-cover" />
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <CldUploadWidget
-                      uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'default'}
-                      onSuccess={(result: any) => {
-                        updateUserAvatar(user.id, result.info.secure_url);
-                      }}
-                    >
-                      {({ open }) => (
-                        <button 
-                          onClick={(e) => { e.preventDefault(); open(); }}
-                          className="cursor-pointer bg-[#23252b] border border-[#2a2d36] hover:bg-white/5 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
-                        >
-                          <Upload className="w-3 h-3" />
-                        </button>
-                      )}
-                    </CldUploadWidget>
-                    <button 
-                      onClick={() => updateUser(user.id, { isActive: !user.isActive })}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${user.isActive ? 'bg-[#ff5a5a]/10 text-red-400 border-[#ff5a5a]/20 hover:bg-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'}`}
-                    >
-                      {user.isActive ? 'Deactivate' : 'Reactivate'}
-                    </button>
-                    <button 
-                      onClick={() => openConfirm('Delete Boarder?', `Are you sure you want to completely remove ${user.name}? This cannot be undone.`, () => {
-                        removeUser(user.id);
-                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
-                      })} 
-                      className="p-1.5 text-[#ff5a5a] hover:bg-[#ff5a5a]/10 rounded-lg transition-colors"
-                    >
-                      &times;
-                    </button>
+                  <div className="flex flex-col flex-1">
+                    <span className="font-medium text-white/90">{user.name}</span>
+                    <span className="text-xs text-white/40">{user.isActive ? 'Active Member' : 'Deactivated'}</span>
                   </div>
+                  {user.role === 'admin' && (
+                    <div className="px-2 py-1 rounded-md bg-[#00ff9d]/10 text-[#00ff9d] text-[10px] font-medium tracking-wide uppercase">
+                      Admin
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* ROSTER TAB */}
         {activeTab === 'roster' && (
-          <div className="bg-[#181a1f] rounded-b-3xl rounded-tr-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col gap-8 animate-in fade-in">
-             <div className="flex flex-col gap-2">
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 rounded-full translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col gap-2">
               <h3 className="font-extrabold text-xl tracking-tight text-white">Roster Configuration</h3>
               <p className="text-sm text-gray-400">Adjust which days the roster runs, and how many people are assigned to each task per day.</p>
             </div>
@@ -322,13 +326,18 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
-        {/* INVENTORY TAB */}
         {activeTab === 'inventory' && (
-          <div className="bg-[#181a1f] rounded-b-3xl rounded-tr-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col gap-8 animate-in fade-in">
-             <div className="flex flex-col gap-2">
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/10 to-yellow-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col gap-2">
               <h3 className="font-extrabold text-xl tracking-tight text-white">Inventory Configuration & Overrides</h3>
               <p className="text-sm text-gray-400">Add new items to track, force cycles to advance, or manually override debt and progress grams.</p>
             </div>
@@ -399,7 +408,10 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
               {inventoryItems.map(item => {
-                const cycleInfo = inventoryCycles[item.id] || { currentCycle: 1, userProgress: {}, userDebts: {} };
+                const cycleInfo = inventoryCycles[item.id] || {};
+                const userProgress = cycleInfo.userProgress || {};
+                const userDebts = cycleInfo.userDebts || {};
+                
                 return (
                   <div key={item.id} className="flex flex-col gap-4 p-6 rounded-2xl border border-[#2a2d36] bg-black/20 shadow-sm">
                     <div className="flex items-center justify-between">
@@ -408,7 +420,7 @@ export default function SettingsPage() {
                         <div>
                           <h4 className="font-extrabold text-md text-white">{item.name}</h4>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs font-bold text-gray-500">Cycle {cycleInfo.currentCycle} | Quota:</span>
+                            <span className="text-xs font-bold text-gray-500">Cycle {cycleInfo.currentCycle || 1} | Quota:</span>
                             {editingQuotaId === item.id ? (
                               <div className="flex items-center gap-1">
                                 <input 
@@ -451,10 +463,10 @@ export default function SettingsPage() {
                     
                     <div className="flex flex-col gap-2 mt-2">
                       {users.map(user => {
-                        const p = cycleInfo.userProgress[user.id] || 0;
-                        const d = cycleInfo.userDebts[user.id] || 0;
+                        const p = userProgress[user.id] || 0;
+                        const d = userDebts[user.id] || 0;
                         return (
-                          <div key={user.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-xl border ${user.isActive ? 'border-[#2a2d36] bg-[#181a1f]' : 'border-dashed border-[#2a2d36] opacity-50'} gap-2`}>
+                          <div key={user.id} className={`flex flex-col sm:flex-row sm:items-center justify-between p-2 rounded-xl border ${user.isActive ? 'border-[#2a2d36] bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl' : 'border-dashed border-[#2a2d36] opacity-50'} gap-2`}>
                             <span className="font-bold text-xs min-w-[80px] text-white">{user.name}</span>
                             <div className="flex items-center gap-3">
                               <div className="flex items-center gap-1">
@@ -474,32 +486,273 @@ export default function SettingsPage() {
                 )
               })}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* FEES TAB */}
         {activeTab === 'fees' && (
-          <div className="bg-[#181a1f] rounded-b-3xl rounded-tr-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col gap-8 animate-in fade-in">
-             <div className="flex flex-col gap-2">
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/10 to-green-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col gap-2">
               <h3 className="font-extrabold text-xl tracking-tight text-white">Manage Boarding Fees</h3>
               <p className="text-sm text-gray-400">Admin override for boarding fees. You can manually check or uncheck payments for any user here.</p>
             </div>
-            <div className="max-w-4xl">
+            <div className="relative z-10 max-w-4xl">
               <BoardingFeeTracker isReadOnly={false} />
             </div>
-          </div>
+          </motion.div>
+        )}
+
+        {/* TIMETABLE TAB */}
+        {activeTab === 'timetable' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/10 to-green-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            
+            <div className="relative z-10 flex flex-col gap-2">
+              <h3 className="font-extrabold text-xl tracking-tight text-white">Timetable Setup</h3>
+              <p className="text-sm text-gray-400">Manage the university semester dates, lecture timetable, and vacations.</p>
+            </div>
+
+            <div className="relative z-10 flex flex-col gap-6">
+              {/* Validity Period */}
+              <div className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-3xl p-6">
+                <h3 className="font-bold text-white text-lg mb-4">Semester Validity Period</h3>
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-gray-500 font-bold uppercase">Starts On</label>
+                    <input 
+                      type="date" 
+                      value={timetableConfig?.validFrom || ''}
+                      onChange={e => updateTimetableConfig({ validFrom: e.target.value })}
+                      className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs text-gray-500 font-bold uppercase">Ends On</label>
+                    <input 
+                      type="date" 
+                      value={timetableConfig?.validTo || ''}
+                      onChange={e => updateTimetableConfig({ validTo: e.target.value })}
+                      className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Course Manager */}
+                <div className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex flex-col gap-6">
+                  <div>
+                    <h3 className="font-bold text-white text-lg">Course Manager</h3>
+                    <p className="text-sm text-gray-400">Add recurring weekly lectures or lab sessions.</p>
+                  </div>
+                  
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newCourse.name) return;
+                      addCourse(newCourse);
+                      setNewCourse(prev => ({ ...prev, name: '' }));
+                    }}
+                    className="flex flex-col gap-4 bg-[#090A0C]/50 p-4 rounded-2xl border border-white/5"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-500 font-bold uppercase">Subject Name</label>
+                      <input 
+                        required
+                        type="text"
+                        placeholder="e.g. Data Structures"
+                        value={newCourse.name}
+                        onChange={e => setNewCourse({ ...newCourse, name: e.target.value })}
+                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Day</label>
+                        <select 
+                          value={newCourse.dayOfWeek}
+                          onChange={e => setNewCourse({ ...newCourse, dayOfWeek: e.target.value as any })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        >
+                          {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Credits</label>
+                        <input 
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={newCourse.creditHours}
+                          onChange={e => setNewCourse({ ...newCourse, creditHours: parseInt(e.target.value) || 0 })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Start Time</label>
+                        <input 
+                          required
+                          type="time"
+                          value={newCourse.startTime}
+                          onChange={e => setNewCourse({ ...newCourse, startTime: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">End Time</label>
+                        <input 
+                          required
+                          type="time"
+                          value={newCourse.endTime}
+                          onChange={e => setNewCourse({ ...newCourse, endTime: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 py-2 rounded-xl font-bold transition-colors mt-2">
+                      Add Course
+                    </button>
+                  </form>
+
+                  <div className="flex flex-col gap-4 mt-2">
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(day => {
+                      const dayCourses = courses.filter(c => c.dayOfWeek === day).sort((a, b) => a.startTime.localeCompare(b.startTime));
+                      if (dayCourses.length === 0) return null;
+                      return (
+                        <div key={day} className="flex flex-col gap-2">
+                          <h4 className="text-sm font-bold text-gray-400 border-b border-[#2a2d36] pb-1">{day}</h4>
+                          {dayCourses.map(course => (
+                            <div key={course.id} className="flex items-center justify-between bg-[#090A0C]/50 p-3 rounded-xl border border-[#2a2d36]">
+                              <div className="flex flex-col">
+                                <span className="font-bold text-white text-sm">{course.name}</span>
+                                <span className="text-xs text-gray-500">{course.startTime} - {course.endTime} • {course.creditHours} Credits</span>
+                              </div>
+                              <button onClick={() => removeCourse(course.id)} className="text-red-400 hover:text-red-300 p-1">✕</button>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Holiday Manager */}
+                <div className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex flex-col gap-6">
+                  <div>
+                    <h3 className="font-bold text-white text-lg">Holiday Management</h3>
+                    <p className="text-sm text-gray-400">Define off-days and vacations.</p>
+                  </div>
+
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newHoliday.title) return;
+                      addHoliday(newHoliday);
+                      setNewHoliday(prev => ({ ...prev, title: '' }));
+                    }}
+                    className="flex flex-col gap-4 bg-[#090A0C]/50 p-4 rounded-2xl border border-white/5"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-500 font-bold uppercase">Holiday Title</label>
+                      <input 
+                        required
+                        type="text"
+                        placeholder="e.g. Poya Day"
+                        value={newHoliday.title}
+                        onChange={e => setNewHoliday({ ...newHoliday, title: e.target.value })}
+                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Start Date</label>
+                        <input 
+                          required
+                          type="date"
+                          value={newHoliday.startDate}
+                          onChange={e => setNewHoliday({ ...newHoliday, startDate: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">End Date</label>
+                        <input 
+                          required
+                          type="date"
+                          value={newHoliday.endDate}
+                          onChange={e => setNewHoliday({ ...newHoliday, endDate: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer mt-1">
+                      <input 
+                        type="checkbox"
+                        checked={newHoliday.isLongVacation}
+                        onChange={e => setNewHoliday({ ...newHoliday, isLongVacation: e.target.checked })}
+                        className="w-4 h-4 rounded border-[#2a2d36] bg-[#141618] text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0"
+                      />
+                      <span className="text-sm font-medium text-gray-300">This is a Long Vacation</span>
+                    </label>
+                    <button type="submit" className="w-full bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 py-2 rounded-xl font-bold transition-colors mt-2">
+                      Add Holiday
+                    </button>
+                  </form>
+
+                  <div className="flex flex-col gap-2 mt-2">
+                    {holidays.sort((a, b) => a.startDate.localeCompare(b.startDate)).map(holiday => (
+                      <div key={holiday.id} className="flex items-center justify-between bg-[#090A0C]/50 p-3 rounded-xl border border-[#2a2d36]">
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-white text-sm">{holiday.title}</span>
+                            {holiday.isLongVacation && <span className="bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">Long Vacation</span>}
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            {holiday.startDate === holiday.endDate ? holiday.startDate : `${holiday.startDate} to ${holiday.endDate}`}
+                          </span>
+                        </div>
+                        <button onClick={() => removeHoliday(holiday.id)} className="text-red-400 hover:text-red-300 p-1">✕</button>
+                      </div>
+                    ))}
+                    {holidays.length === 0 && <p className="text-sm text-gray-500 text-center py-4 italic">No holidays defined.</p>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {/* DANGER ZONE TAB */}
         {activeTab === 'danger' && (
-          <div className="bg-red-950/20 rounded-b-3xl rounded-tr-3xl p-6 md:p-8 border border-[#ff5a5a]/20 shadow-md flex flex-col gap-8 animate-in fade-in">
-             <div className="flex flex-col gap-2">
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-[#ff5a5a]/20 shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute top-1/2 right-0 w-64 h-64 bg-gradient-to-br from-red-500/15 to-orange-500/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col gap-2">
               <h3 className="font-extrabold text-xl tracking-tight text-[#ff5a5a]">Danger Zone</h3>
               <p className="text-sm text-red-400/80 font-medium">Critical system operations. Ensure you export a backup before performing a factory reset.</p>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 max-w-2xl">
-              <div className="flex-1 bg-[#181a1f] p-5 rounded-2xl border border-[#2a2d36] flex flex-col gap-3">
+            <div className="relative z-10 flex flex-col md:flex-row gap-4 max-w-2xl">
+              <div className="flex-1 bg-black/20 backdrop-blur-xl p-5 rounded-[24px] border border-[#2a2d36] flex flex-col gap-3">
                 <h4 className="font-bold text-white">Export Backup</h4>
                 <p className="text-xs text-gray-400">Download the entire database state as a JSON file.</p>
                 <button onClick={handleExport} className="mt-auto w-full bg-emerald-500 text-black px-4 py-2.5 rounded-xl font-bold shadow-sm hover:bg-emerald-400 transition-colors">
@@ -507,7 +760,7 @@ export default function SettingsPage() {
                 </button>
               </div>
 
-              <div className="flex-1 bg-[#181a1f] p-5 rounded-2xl border border-[#ff5a5a]/30 flex flex-col gap-3">
+              <div className="flex-1 bg-black/20 backdrop-blur-xl p-5 rounded-[24px] border border-[#ff5a5a]/30 flex flex-col gap-3">
                 <h4 className="font-bold text-[#ff5a5a]">Factory Reset</h4>
                 <p className="text-xs text-gray-400">Wipe all logs, tasks, and users. Resets to defaults.</p>
                 <button 
@@ -521,7 +774,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
       </div>
@@ -533,6 +786,13 @@ export default function SettingsPage() {
         onConfirm={confirmModal.action} 
         onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))} 
       />
+
+      {activeUserModal && (
+        <UserProfileModal 
+          userId={activeUserModal}
+          onClose={() => setActiveUserModal(null)}
+        />
+      )}
     </div>
   );
 }

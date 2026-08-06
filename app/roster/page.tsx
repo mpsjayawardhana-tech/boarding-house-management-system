@@ -5,6 +5,7 @@ import { CheckCircle2, Users, Brush, Droplets, Bath } from "lucide-react";
 import Image from "next/image";
 import { useState, useMemo } from "react";
 import { generateDeterministicSchedule, calculateHistoricalBalances } from "@/utils/rosterAlgorithm";
+import { motion } from "framer-motion";
 
 export default function RosterPage() {
   const { users, rosterConfig, completedTasksHistory, upcomingSwaps, completeTask, undoTaskCompletion } = useAppStore();
@@ -24,7 +25,7 @@ export default function RosterPage() {
   const sortedUsers = [...users].sort((a, b) => (historicalBalances[a.id] || 0) - (historicalBalances[b.id] || 0));
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="w-full h-full flex flex-col gap-6 pb-10">
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -36,8 +37,15 @@ export default function RosterPage() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         {/* Leaderboard Panel */}
-        <div className="lg:col-span-1 bg-[#181a1f] rounded-3xl p-6 border border-[#2a2d36] shadow-md flex flex-col gap-6">
-          <div className="flex items-center gap-2 border-b border-[#2a2d36] pb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+          whileInView={{ opacity: 1, y: 0, scale: 1 }} 
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+          viewport={{ once: true, amount: 0.1 }}
+          className="lg:col-span-1 bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 flex flex-col gap-6 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+        >
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/15 to-teal-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+          <div className="relative z-10 flex items-center gap-2 border-b border-[#2a2d36] pb-4">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/20">
               <Users className="w-5 h-5 text-emerald-400" />
             </div>
@@ -65,24 +73,32 @@ export default function RosterPage() {
               );
             })}
           </div>
-        </div>
+        </motion.div>
 
         {/* Schedule Grid */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
           {weeklySchedule.length === 0 ? (
-            <div className="md:col-span-2 flex flex-col items-center justify-center p-12 bg-[#181a1f] rounded-3xl border border-[#2a2d36] shadow-sm border-dashed">
+            <div className="md:col-span-2 flex flex-col items-center justify-center p-12 bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-3xl border border-[#2a2d36] shadow-sm border-dashed">
               <p className="text-lg font-medium text-gray-400 mb-4">No active schedule for this week.</p>
               <p className="text-sm text-gray-400">Add active days in the Settings.</p>
             </div>
           ) : (
-            weeklySchedule.map((day) => (
-              <div key={day.dayName} className="bg-[#181a1f] rounded-3xl p-6 border border-[#2a2d36] shadow-md flex flex-col gap-4 relative overflow-hidden">
-                <div className="flex justify-between items-center border-b border-[#2a2d36] pb-4">
+            weeklySchedule.map((day, idx) => (
+              <motion.div 
+                key={day.dayName} 
+                initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+                whileInView={{ opacity: 1, y: 0, scale: 1 }} 
+                transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 * Math.min(idx + 1, 5) }}
+                viewport={{ once: true, amount: 0.1 }}
+                className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 flex flex-col gap-4 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+              >
+                <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-indigo-500/5 rounded-full translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+                <div className="relative z-10 flex justify-between items-center border-b border-[#2a2d36] pb-4">
                   <h3 className="font-extrabold text-xl tracking-tight text-white">{day.dayName}</h3>
                   <span className="text-xs font-bold bg-[#23252b] text-gray-400 px-3 py-1 rounded-full border border-[#2a2d36]">{day.tasks.length} Tasks</span>
                 </div>
                 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 relative z-10">
                   {day.tasks.map(task => (
                     <div key={task.id} className={`flex flex-col gap-3 p-4 rounded-2xl border ${task.isCompleted ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-[#1A1C1E] border-[#2a2d36]'} transition-colors shadow-sm`}>
                       <div className="flex items-center justify-between">
@@ -130,7 +146,7 @@ export default function RosterPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </motion.div>
             ))
           )}
         </div>
@@ -139,7 +155,7 @@ export default function RosterPage() {
       {/* Mark as Done Modal */}
       {selectedTask && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-[#2a2d36] animate-in zoom-in-95 duration-200">
+          <div className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-3xl p-6 md:p-8 w-full max-w-md shadow-2xl border border-[#2a2d36] animate-in zoom-in-95 duration-200">
             <h2 className="text-2xl font-extrabold mb-2 text-white">Complete Task</h2>
             <p className="text-gray-400 text-sm mb-6">Who actually completed this duty? (Select all that apply to trigger fairness swaps if someone else covered).</p>
             

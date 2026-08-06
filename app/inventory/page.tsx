@@ -7,8 +7,7 @@ import Image from "next/image";
 import { useState, useMemo } from "react";
 import { IconMapper } from "@/components/IconMapper";
 import { parseSmartAmount } from "@/utils/parseAmount";
-
-import { CursorSpotlightCard } from "@/components/CursorSpotlightCard";
+import { motion } from "framer-motion";
 
 export default function InventoryPage() {
   const { users, inventoryItems, inventoryLogs, inventoryCycles, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, currentUserId, currentUserRole } = useAppStore();
@@ -63,7 +62,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="w-full h-full flex flex-col gap-6 pb-10">
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -84,11 +83,13 @@ export default function InventoryPage() {
         {/* Cycle Overview Widgets */}
         {inventoryItems.map((item, idx) => {
           const cycleInfo = inventoryCycles[item.id] || { currentCycle: 1, userProgress: {}, userDebts: {} };
+          const userProgress = cycleInfo.userProgress || {};
+          const userDebts = cycleInfo.userDebts || {};
           
           const userStatus = users.filter(u => u.isActive !== false).map(u => {
-            const p = cycleInfo.userProgress[u.id] || 0;
-            const d = cycleInfo.userDebts[u.id] || 0;
-            const required = item.quota + d;
+            const p = userProgress[u.id] || 0;
+            const d = userDebts[u.id] || 0;
+            const required = (item.quota || 0) + d;
             const isDone = p >= required;
             return {
               user: u,
@@ -110,8 +111,15 @@ export default function InventoryPage() {
           const veryNext = pending[0]; // Person with highest debt or least progress
 
           return (
-            <CursorSpotlightCard key={item.id} className={`bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col gap-6 relative overflow-hidden stagger-${Math.min(idx + 1, 5)}`}>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl opacity-50 pointer-events-none"></div>
+            <motion.div 
+              key={item.id} 
+              initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+              whileInView={{ opacity: 1, y: 0, scale: 1 }} 
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 * Math.min(idx, 3) }}
+              viewport={{ once: true, amount: 0.1 }}
+              className={`bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden w-full min-h-[40vh] md:min-h-0`}
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/10 to-yellow-500/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
               
               <div className="flex justify-between items-center border-b border-[#2a2d36] pb-4 relative z-10">
                 <div className="flex items-center gap-3">
@@ -173,15 +181,12 @@ export default function InventoryPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-gray-400">{p.progress} {item.unit || 'g'} / {p.required} {item.unit || 'g'}</span>
+                            <span className="text-xs font-black text-gray-500">{p.progress} / {p.required} {item.unit || 'g'}</span>
                           </div>
                         </div>
                         
-                        <div className="h-1.5 w-full bg-[#23252b] rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-1000 ${p.debt > 0 ? 'bg-red-500' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]'}`}
-                            style={{ width: `${pct}%` }}
-                          ></div>
+                        <div className="h-2 w-full bg-[#1A1C20] rounded-full overflow-hidden">
+                          <div className={`h-full transition-all duration-1000 ${p.debt > 0 ? 'bg-rose-500' : 'bg-emerald-500'}`} style={{ width: `${pct}%` }}></div>
                         </div>
                       </div>
                     );
@@ -189,7 +194,6 @@ export default function InventoryPage() {
                 </div>
               )}
               
-              {/* Completed This Cycle */}
               {completed.length > 0 && (
                 <div className="flex flex-col gap-3 relative z-10 mt-2">
                   <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Completed This Cycle</h4>
@@ -222,15 +226,23 @@ export default function InventoryPage() {
                 </div>
               )}
 
-            </CursorSpotlightCard>
+            </motion.div>
           )
         })}
 
         {/* Logs Form & Table */}
-        <div className="xl:col-span-2 bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md">
+        <motion.div 
+          initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+          whileInView={{ opacity: 1, y: 0, scale: 1 }} 
+          transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
+          viewport={{ once: true, amount: 0.1 }}
+          className="xl:col-span-2 bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 md:p-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+        >
+          <div className="absolute bottom-0 left-0 w-72 h-72 bg-gradient-to-br from-blue-500/10 to-purple-500/5 rounded-full translate-y-1/3 -translate-x-1/3 blur-[5rem] pointer-events-none"></div>
+          <div className="relative z-10">
           {isAdding && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-              <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-2xl max-w-lg w-full animate-in zoom-in-95 duration-200 relative">
+              <div className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-2xl max-w-lg w-full animate-in zoom-in-95 duration-200 relative">
                 <button 
                   onClick={() => setIsAdding(false)} 
                   className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-[#23252b] hover:bg-white/10 text-gray-400 transition-colors"
@@ -364,8 +376,8 @@ export default function InventoryPage() {
             )}
             </div>
           )}
-        </div>
-        
+          </div>
+        </motion.div>
       </div>
     </div>
   );

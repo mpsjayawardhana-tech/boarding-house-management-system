@@ -13,6 +13,7 @@ import { IconMapper } from "@/components/IconMapper";
 import { PerformanceGraph } from "@/components/PerformanceGraph";
 import { CursorSpotlightCard } from "@/components/CursorSpotlightCard";
 import { useCountUp } from "@/hooks/useCountUp";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const { users, inventoryItems, inventoryLogs, p2pDebts, completedTasksHistory, currentUserId, rosterConfig, upcomingSwaps } = useAppStore();
@@ -44,7 +45,9 @@ export default function Dashboard() {
   const animatedPendingDebtsSum = useCountUp(pendingDebtsSum);
 
   const inventoryAlerts = inventoryItems.map(item => {
-    const cycleInfo = useAppStore.getState().inventoryCycles[item.id] || { currentCycle: 1, userProgress: {}, userDebts: {} };
+    const cycleInfo = useAppStore.getState().inventoryCycles?.[item.id] || {};
+    const userProgress = cycleInfo.userProgress || {};
+    const userDebts = cycleInfo.userDebts || {};
     
     let completedCount = 0;
     let nextInLineId = users[0]?.id;
@@ -52,9 +55,9 @@ export default function Dashboard() {
     let userOwes = false;
 
     users.forEach(u => {
-      const p = cycleInfo.userProgress[u.id] || 0;
-      const d = cycleInfo.userDebts[u.id] || 0;
-      const req = item.quota + d;
+      const p = userProgress[u.id] || 0;
+      const d = userDebts[u.id] || 0;
+      const req = (item.quota || 0) + d;
       
       if (p >= req) {
         completedCount++;
@@ -99,21 +102,20 @@ export default function Dashboard() {
   const topPerformerId = monthlyStats[0]?.total > 0 ? monthlyStats[0].user.id : null;
 
   return (
-    <div className="w-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="w-full flex flex-col gap-6 pb-10">
       
-      {/* Page Header (Moved from Topbar) */}
-      <div className="flex flex-col mb-2">
-        <h2 className="text-[10px] uppercase tracking-widest font-bold text-gray-400">{format(new Date(), "EEEE, MMMM do, yyyy")}</h2>
-        <h1 className="text-3xl md:text-4xl font-bold text-white mt-1 tracking-tight">
-          Morning, {currentUser?.name}
-        </h1>
-      </div>
 
       {/* Bento Grid Header */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-gradient-to-br from-[#181a1f] to-[#181a1f] rounded-3xl p-8 md:p-10 text-white shadow-xl shadow-emerald-500/5 relative overflow-hidden flex flex-col justify-center min-h-[240px] border border-[#2a2d36] stagger-1">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-56 h-56 bg-emerald-500/10 rounded-full translate-y-1/3 -translate-x-1/4 blur-3xl"></div>
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} 
+          whileInView={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }} 
+          viewport={{ once: true, margin: "-40px" }}
+          className="lg:col-span-2 bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-8 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[240px] hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300"
+        >
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gradient-to-br from-[#00ff9d]/20 to-blue-500/10 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-gradient-to-br from-emerald-500/15 to-[#00ff9d]/5 rounded-full translate-y-1/3 -translate-x-1/4 blur-[4rem] pointer-events-none"></div>
           
           <div className="relative z-10 flex flex-col md:flex-row gap-8 h-full">
             {/* Left Column: Greeting */}
@@ -156,11 +158,18 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
         
         {/* Monthly Performance */}
-        <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col min-h-[240px] stagger-2">
-          <div className="flex justify-between items-center mb-4 border-b border-[#2a2d36] pb-2">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} 
+          whileInView={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.2 }} 
+          viewport={{ once: true, margin: "-40px" }}
+          className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 md:p-8 shadow-2xl relative flex flex-col min-h-[240px] hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden"
+        >
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-br from-purple-500/15 to-pink-500/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-[4rem] pointer-events-none"></div>
+          <div className="relative z-10 flex justify-between items-center mb-4 border-b border-[#2a2d36] pb-2">
             <h3 className="text-[10px] uppercase tracking-widest font-extrabold text-white">Monthly Performance</h3>
             <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">{format(new Date(), 'MMMM')}</span>
           </div>
@@ -188,14 +197,21 @@ export default function Dashboard() {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Second Row of Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 min-h-[350px]">
         {/* Today's Duties Card */}
-        <div className="lg:col-span-1 bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col stagger-3">
-          <div className="flex justify-between items-center mb-8 border-b border-[#2a2d36] pb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} 
+          whileInView={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.3 }} 
+          viewport={{ once: true, margin: "-40px" }}
+          className="lg:col-span-1 bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 md:p-8 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden"
+        >
+          <div className="absolute -top-10 -left-10 w-56 h-56 bg-gradient-to-br from-[#00ff9d]/15 to-teal-500/10 rounded-full blur-[4rem] pointer-events-none"></div>
+          <div className="relative z-10 flex justify-between items-center mb-8 border-b border-[#2a2d36] pb-4">
             <h3 className="text-[10px] uppercase tracking-widest font-extrabold text-white">Today&apos;s Duties</h3>
             <span className="text-[10px] uppercase tracking-widest font-bold bg-emerald-500/10 text-emerald-400 px-4 py-1.5 rounded-xl border border-emerald-500/20 shadow-sm">
               {displayDayName}
@@ -242,20 +258,34 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Financial Summary Card */}
-        <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col stagger-4">
-          <div className="flex justify-between items-center mb-8 border-b border-[#2a2d36] pb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} 
+          whileInView={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.4 }} 
+          viewport={{ once: true, margin: "-40px" }}
+          className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 md:p-8 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden"
+        >
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-gradient-to-br from-red-500/15 to-orange-500/10 rounded-full translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+          <div className="relative z-10 flex justify-between items-center mb-6 border-b border-[#2a2d36] pb-4">
             <h3 className="text-[10px] uppercase tracking-widest font-extrabold text-white">My Debts</h3>
             {pendingDebtsSum > 0 ? (
-              <span className="text-[10px] uppercase tracking-widest font-bold bg-[#ff5a5a]/10 text-red-400 px-3 py-1 rounded-full border border-[#ff5a5a]/20 animate-pulse shadow-[0_0_10px_rgba(248,113,113,0.2)]">LKR <span className="font-mono text-sm">{animatedPendingDebtsSum}</span></span>
+              <span className="text-[10px] uppercase tracking-widest font-bold bg-[#ff5a5a]/10 text-red-400 px-3 py-1 rounded-full border border-[#ff5a5a]/20 animate-pulse shadow-[0_0_10px_rgba(248,113,113,0.2)]">Owed</span>
             ) : (
               <span className="text-[10px] uppercase tracking-widest font-bold bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">All Settled</span>
             )}
           </div>
           
-          <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2">
+          {pendingDebtsSum > 0 && (
+            <div className="mb-6 relative z-10">
+              <span className="text-gray-400 text-sm font-medium">Total Pending</span>
+              <div className="font-light text-5xl text-white mt-1 tracking-tighter">LKR {animatedPendingDebtsSum}</div>
+            </div>
+          )}
+
+          <div className="relative z-10 flex-1 flex flex-col gap-4 overflow-y-auto pr-2">
             {userOwesDebts.length === 0 ? (
               <div className="flex-1 flex items-center justify-center border-2 border-dashed border-[#2a2d36] rounded-2xl bg-black/20 p-6">
                 <p className="text-gray-400 text-sm font-medium text-center">You have no pending debts. Great job!</p>
@@ -279,11 +309,18 @@ export default function Dashboard() {
               })
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Inventory Alerts Card */}
-        <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col stagger-5">
-          <div className="flex justify-between items-center mb-8 border-b border-[#2a2d36] pb-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }} 
+          whileInView={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.5 }} 
+          viewport={{ once: true, margin: "-40px" }}
+          className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 md:p-8 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden"
+        >
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-br from-amber-500/15 to-yellow-500/10 rounded-full -translate-x-1/2 -translate-y-1/2 blur-[4rem] pointer-events-none"></div>
+          <div className="relative z-10 flex justify-between items-center mb-8 border-b border-[#2a2d36] pb-4">
             <h3 className="text-[10px] uppercase tracking-widest font-extrabold text-white">Inventory Alerts</h3>
             <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]"></div>
           </div>
@@ -293,7 +330,7 @@ export default function Dashboard() {
               const nextPerson = users.find(u => u.id === item.nextInLineId);
               
               return (
-                <CursorSpotlightCard key={item.id} className="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-[#2a2d36]">
+                <motion.div key={item.id} className="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-[#2a2d36]">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-[#2a2d36] bg-[#23252b] text-emerald-400`}>
@@ -323,20 +360,29 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                </CursorSpotlightCard>
+                </motion.div>
               )
             })}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Boarding Fee Heatmap (Read-Only) */}
-      <div className="stagger-5"><BoardingFeeTracker isReadOnly={true} /></div>
+      <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} className="stagger-5"><BoardingFeeTracker isReadOnly={true} /></motion.div>
 
       {/* Activity Heatmap Row */}
-      <div className="bg-[#181a1f] rounded-3xl p-6 md:p-8 border border-[#2a2d36] shadow-md flex flex-col w-full overflow-hidden stagger-5">
-        <ActivityHeatmap />
-      </div>
+      <motion.div 
+        initial={{ opacity: 0, y: 40 }} 
+        whileInView={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.6 }} 
+        viewport={{ once: true, margin: "-40px" }}
+        className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 md:p-8 shadow-2xl flex flex-col w-full overflow-hidden hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 relative"
+      >
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-gradient-to-br from-[#00ff9d]/10 to-teal-500/5 rounded-full blur-[5rem] pointer-events-none"></div>
+        <div className="relative z-10">
+          <ActivityHeatmap />
+        </div>
+      </motion.div>
     </div>
   );
 }

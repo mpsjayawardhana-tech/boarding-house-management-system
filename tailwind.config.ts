@@ -19,7 +19,7 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "sans-serif"],
+        sans: ["'Helvetica Neue'", "Helvetica", "Arial", "sans-serif"],
         mono: ["var(--font-space-mono)", "monospace"],
       },
       colors: {

@@ -84,10 +84,10 @@ export function ActivityHeatmap() {
 
   const getLevelColor = (level: number) => {
     switch(level) {
-      case 1: return 'bg-emerald-900 border-emerald-800';
-      case 2: return 'bg-emerald-600 border-emerald-500 text-white';
-      case 3: return 'bg-emerald-500 border-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)] text-white';
-      default: return 'bg-[#23252b] border-[#2a2d36]';
+      case 1: return 'bg-slate-800 border-slate-700';
+      case 2: return 'bg-slate-600 border-slate-500 text-white';
+      case 3: return 'bg-slate-400 border-slate-300 shadow-[0_0_8px_rgba(255,255,255,0.1)] text-black';
+      default: return 'bg-white/5 border-white/10';
     }
   };
 

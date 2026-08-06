@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { format } from 'date-fns';
+import { format, addWeeks } from 'date-fns';
 
 export type User = {
   id: string;
   name: string;
   avatar: string;
   isActive: boolean;
+  role?: 'admin' | 'user';
 };
 
 export type TaskType = 'sweep' | 'mop' | 'toilet';
@@ -65,6 +66,14 @@ export type P2PDebt = {
   description: string;
 };
 
+export type Payment = {
+  id: string;
+  payerId: string;
+  payeeId: string;
+  amount: number;
+  date: string;
+};
+
 export type UpcomingSwap = {
   taskType: TaskType;
   fromUserId: string;
@@ -77,6 +86,38 @@ export type InventoryCycleState = {
   currentCycle: number;
   userProgress: Record<string, number>; 
   userDebts: Record<string, number>; 
+};
+
+export type Course = {
+  id: string;
+  code?: string;
+  name: string;
+  type?: 'Lecture' | 'Practical' | 'Tutorial';
+  dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+  startTime: string; // HH:mm format
+  endTime: string;   // HH:mm format
+  creditHours: number;
+};
+
+export type Holiday = {
+  id: string;
+  startDate: string;
+  endDate: string;
+  title: string;
+  isLongVacation: boolean;
+};
+
+export type TimetableConfig = {
+  validFrom: string;
+  validTo: string;
+};
+
+export type Attendance = {
+  id: string;
+  userId: string;
+  courseId: string;
+  date: string;
+  status: 'attended' | 'missed';
 };
 
 interface AppState {
@@ -112,6 +153,7 @@ interface AppState {
   inventoryLogs: InventoryLog[];
   inventoryCycles: Record<string, InventoryCycleState>;
   p2pDebts: P2PDebt[];
+  payments: Payment[];
   boardingFees: BoardingFeeState; 
   
   addInventoryLog: (log: Omit<InventoryLog, 'id'>) => void;
@@ -127,8 +169,25 @@ interface AppState {
   addP2PDebt: (debt: Omit<P2PDebt, 'id'>) => void;
   updateP2PDebt: (id: string, debt: Omit<P2PDebt, 'id'>) => void;
   deleteP2PDebt: (id: string) => void;
+  addPayment: (payerId: string, payeeId: string, amount: number) => void;
 
   toggleBoardingFee: (userId: string, year: number, month: number) => void;
+
+  // Timetable & Attendance State
+  courses: Course[];
+  holidays: Holiday[];
+  timetableConfig: TimetableConfig;
+  attendances: Attendance[];
+  enrollments: Record<string, string[]>; // userId -> courseId[]
+
+  addCourse: (course: Omit<Course, 'id'>) => void;
+  removeCourse: (id: string) => void;
+  addHoliday: (holiday: Omit<Holiday, 'id'>) => void;
+  removeHoliday: (id: string) => void;
+  updateTimetableConfig: (config: Partial<TimetableConfig>) => void;
+  markAttendance: (userId: string, courseId: string, date: string, status: 'attended' | 'missed') => void;
+  removeAttendance: (id: string) => void;
+  toggleCourseEnrollment: (userId: string, courseId: string) => void;
 }
 
 const defaultUsers: User[] = [
@@ -220,7 +279,23 @@ export const useAppStore = create<AppState>()(
             'soap': { currentCycle: 1, userProgress: {}, userDebts: {} }
           },
           p2pDebts: [],
-          boardingFees: {}
+          boardingFees: {},
+          courses: [
+            { id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', type: 'Lecture', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', creditHours: 3 },
+            { id: 'c2', code: 'CMIS 2123', name: 'Database Management System', type: 'Lecture', dayOfWeek: 'Monday', startTime: '13:00', endTime: '15:00', creditHours: 3 },
+            { id: 'c3', code: 'ELTN 2112', name: 'Electricity & Magnetism', type: 'Lecture', dayOfWeek: 'Tuesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+            { id: 'c4', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', type: 'Practical', dayOfWeek: 'Tuesday', startTime: '13:00', endTime: '16:00', creditHours: 1 },
+            { id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+            { id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '11:00', endTime: '13:00', creditHours: 2 },
+            { id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+            { id: 'c8', code: 'MATH 2114', name: 'Linear Algebra I', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '13:00', endTime: '16:00', creditHours: 3 },
+            { id: 'c9', code: 'STAT 2112', name: 'Statistical Inference I', type: 'Lecture', dayOfWeek: 'Friday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+            { id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', type: 'Lecture', dayOfWeek: 'Friday', startTime: '13:00', endTime: '15:00', creditHours: 2 }
+          ],
+          holidays: [],
+          timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },
+          attendances: [],
+          enrollments: {}
         };
       }),
 
@@ -267,9 +342,10 @@ export const useAppStore = create<AppState>()(
       ],
       addInventoryItem: (item) => set(state => {
         state.pushUndoState();
+        const newId = Date.now().toString();
         return { 
-          inventoryItems: [...state.inventoryItems, { ...item, id: Date.now().toString() }],
-          inventoryCycles: { ...state.inventoryCycles, [item.name]: { currentCycle: 1, userProgress: {}, userDebts: {} } }
+          inventoryItems: [...state.inventoryItems, { ...item, id: newId }],
+          inventoryCycles: { ...state.inventoryCycles, [newId]: { currentCycle: 1, userProgress: {}, userDebts: {} } }
         };
       }),
       removeInventoryItem: (id) => set(state => {
@@ -277,12 +353,26 @@ export const useAppStore = create<AppState>()(
         return { inventoryItems: state.inventoryItems.filter(i => i.id !== id) };
       }),
       inventoryLogs: [],
-      inventoryCycles: {
-        'sugar': { currentCycle: 1, userProgress: {}, userDebts: {} },
-        'soap': { currentCycle: 1, userProgress: {}, userDebts: {} }
-      },
+      inventoryCycles: {},
       p2pDebts: [],
+      payments: [],
       boardingFees: {},
+      courses: [
+        { id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', type: 'Lecture', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', creditHours: 3 },
+        { id: 'c2', code: 'CMIS 2123', name: 'Database Management System', type: 'Lecture', dayOfWeek: 'Monday', startTime: '13:00', endTime: '15:00', creditHours: 3 },
+        { id: 'c3', code: 'ELTN 2112', name: 'Electricity & Magnetism', type: 'Lecture', dayOfWeek: 'Tuesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+        { id: 'c4', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', type: 'Practical', dayOfWeek: 'Tuesday', startTime: '13:00', endTime: '16:00', creditHours: 1 },
+        { id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+        { id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', type: 'Lecture', dayOfWeek: 'Wednesday', startTime: '11:00', endTime: '13:00', creditHours: 2 },
+        { id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+        { id: 'c8', code: 'MATH 2114', name: 'Linear Algebra I', type: 'Lecture', dayOfWeek: 'Thursday', startTime: '13:00', endTime: '16:00', creditHours: 3 },
+        { id: 'c9', code: 'STAT 2112', name: 'Statistical Inference I', type: 'Lecture', dayOfWeek: 'Friday', startTime: '09:00', endTime: '11:00', creditHours: 2 },
+        { id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', type: 'Lecture', dayOfWeek: 'Friday', startTime: '13:00', endTime: '15:00', creditHours: 2 }
+      ],
+      holidays: [],
+      timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },
+      attendances: [],
+      enrollments: {},
 
       completeTask: (task, actualUserIds) => {
         set((state) => {
@@ -459,24 +549,82 @@ export const useAppStore = create<AppState>()(
         state.pushUndoState();
         return { p2pDebts: state.p2pDebts.filter(d => d.id !== id) };
       }),
+      addPayment: (payerId, payeeId, amount) => set(state => {
+        state.pushUndoState();
+        return {
+          payments: [{
+            id: Date.now().toString(),
+            payerId,
+            payeeId,
+            amount,
+            date: format(new Date(), 'yyyy-MM-dd')
+          }, ...state.payments]
+        };
+      }),
 
       toggleBoardingFee: (userId, year, month) => set(state => {
         const yearData = state.boardingFees[year] || {};
         const monthData = yearData[month] || {};
         
-        return { 
-          boardingFees: {
-            ...state.boardingFees,
-            [year]: {
-              ...yearData,
-              [month]: {
-                ...monthData,
-                [userId]: !monthData[userId]
-              }
+        const newFees = {
+          ...state.boardingFees,
+          [year]: {
+            ...yearData,
+            [month]: {
+              ...monthData,
+              [userId]: !monthData[userId]
             }
           }
         };
-      })
+        return {
+          boardingFees: newFees
+        };
+      }),
+
+      addCourse: (course) => set(state => {
+        state.pushUndoState();
+        return { courses: [...state.courses, { ...course, id: Date.now().toString() }] };
+      }),
+      removeCourse: (id) => set(state => {
+        state.pushUndoState();
+        return { courses: state.courses.filter(c => c.id !== id) };
+      }),
+      addHoliday: (holiday) => set(state => {
+        state.pushUndoState();
+        return { holidays: [...state.holidays, { ...holiday, id: Date.now().toString() }] };
+      }),
+      removeHoliday: (id) => set(state => {
+        state.pushUndoState();
+        return { holidays: state.holidays.filter(h => h.id !== id) };
+      }),
+      updateTimetableConfig: (config) => set(state => {
+        state.pushUndoState();
+        return { timetableConfig: { ...state.timetableConfig, ...config } };
+      }),
+      markAttendance: (userId, courseId, date, status) => set(state => {
+        state.pushUndoState();
+        // Remove existing record for this user/course/date if it exists to avoid duplicates
+        const filtered = state.attendances.filter(a => !(a.userId === userId && a.courseId === courseId && a.date === date));
+        return { attendances: [...filtered, { id: Date.now().toString(), userId, courseId, date, status }] };
+      }),
+      removeAttendance: (id) => set(state => {
+        state.pushUndoState();
+        return { attendances: state.attendances.filter(a => a.id !== id) };
+      }),
+      toggleCourseEnrollment: (userId, courseId) => set(state => {
+        state.pushUndoState();
+        const userEnrollments = state.enrollments[userId] || [];
+        const isEnrolled = userEnrollments.includes(courseId);
+        
+        return {
+          enrollments: {
+            ...state.enrollments,
+            [userId]: isEnrolled 
+              ? userEnrollments.filter(id => id !== courseId)
+              : [...userEnrollments, courseId]
+          }
+        };
+      }),
 
     }),
     {
