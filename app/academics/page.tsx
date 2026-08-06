@@ -40,26 +40,20 @@ export default function AcademicsPage() {
     });
   }, [holidays]);
 
-  const myEnrolledCourses = useMemo(() => {
+  const enrolledCourses = useMemo(() => {
     return courses.filter(c => myEnrollments.includes(c.id));
   }, [courses, myEnrollments]);
 
-  const allMySessions = useMemo(() => {
-    const arr: { course: typeof courses[0], session: typeof courses[0]['sessions'][0] }[] = [];
-    myEnrolledCourses.forEach(course => {
-      (course.sessions || []).forEach(session => {
-        arr.push({ course, session });
-      });
-    });
-    return arr;
-  }, [myEnrolledCourses]);
+  const getSessionsForDay = (day: string) => {
+    return enrolledCourses.flatMap(course => 
+      (course.sessions || [])
+        .filter(session => session.dayOfWeek === day)
+        .map(session => ({ ...session, courseCode: course.code, courseName: course.name, courseId: course.id }))
+    ).sort((a, b) => a.startTime.localeCompare(b.startTime));
+  };
 
   // Fetch today's enrolled sessions
-  const todaySessions = useMemo(() => {
-    return allMySessions
-      .filter(s => s.session.dayOfWeek === currentDayName)
-      .sort((a, b) => a.session.startTime.localeCompare(b.session.startTime));
-  }, [allMySessions, currentDayName]);
+  const todaySessions = useMemo(() => getSessionsForDay(currentDayName), [enrolledCourses, currentDayName]);
 
   // Calculate Personal Stats
   const personalStats = useMemo(() => {
@@ -216,10 +210,10 @@ export default function AcademicsPage() {
                       <p className="text-xs text-gray-500 mt-1">Enjoy your free day!</p>
                     </div>
                   ) : (
-                    todaySessions.map(({ course, session }, idx) => {
+                    todaySessions.map((session, idx) => {
                       // Note: We use the course ID and date to find the attendance record. 
                       // If there are multiple sessions for a course on the same day, they will all share the same attendance record.
-                      const record = attendances.find(a => a.userId === currentUser.id && a.courseId === course.id && a.date === todayDateStr);
+                      const record = attendances.find(a => a.userId === currentUser.id && a.courseId === session.courseId && a.date === todayDateStr);
                       
                       let typeColor = 'bg-gray-500';
                       let typeText = 'text-gray-400';
@@ -229,13 +223,13 @@ export default function AcademicsPage() {
                       else if (session.type === 'Tutorial') { typeColor = 'bg-purple-500/10'; typeText = 'text-purple-400'; typeBorder = 'border-purple-500/20'; }
 
                       return (
-                        <div key={`${course.id}-${idx}`} className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:bg-white/5">
+                        <div key={`${session.courseId}-${idx}`} className="bg-black/20 backdrop-blur-xl border border-white/5 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:bg-white/5">
                           <div className="flex flex-col gap-1">
                             <div className="flex items-center gap-2">
                               <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${typeColor} ${typeText} ${typeBorder}`}>{session.type}</span>
-                              <span className="text-xs font-bold text-gray-400">{course.code}</span>
+                              <span className="text-xs font-bold text-gray-400">{session.courseCode}</span>
                             </div>
-                            <span className="font-bold text-white text-lg mt-1">{course.name}</span>
+                            <span className="font-bold text-white text-lg mt-1">{session.courseName}</span>
                             <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-400 mt-1">
                               <span className="flex items-center gap-1 text-[#00ff9d]"><Clock className="w-4 h-4" /> {session.startTime} - {session.endTime}</span>
                               {session.room && (
@@ -252,14 +246,14 @@ export default function AcademicsPage() {
                               <>
                                 <motion.button 
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => markAttendance(currentUser.id, course.id, todayDateStr, 'missed')}
+                                  onClick={() => markAttendance(currentUser.id, session.courseId, todayDateStr, 'missed')}
                                   className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold text-xs bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
                                 >
                                   Missed
                                 </motion.button>
                                 <motion.button 
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => markAttendance(currentUser.id, course.id, todayDateStr, 'attended')}
+                                  onClick={() => markAttendance(currentUser.id, session.courseId, todayDateStr, 'attended')}
                                   className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
                                 >
                                   Attended
@@ -383,9 +377,7 @@ export default function AcademicsPage() {
         <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 lg:p-8">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 lg:gap-6">
             {daysOfWeek.map(day => {
-              const daySessions = allMySessions
-                .filter(s => s.session.dayOfWeek === day)
-                .sort((a, b) => a.session.startTime.localeCompare(b.session.startTime));
+              const daySessions = getSessionsForDay(day);
 
               return (
                 <div key={day} className="flex flex-col gap-3">
@@ -394,7 +386,7 @@ export default function AcademicsPage() {
                   {daySessions.length === 0 ? (
                     <div className="text-gray-500 text-xs italic opacity-50">No classes</div>
                   ) : (
-                    daySessions.map(({ course, session }, idx) => {
+                    daySessions.map((session, idx) => {
                       let typeColor = 'bg-gray-500';
                       let typeLabel = 'U';
                       if (session.type === 'Lecture') { typeColor = 'bg-emerald-500'; typeLabel = 'L'; }
@@ -402,12 +394,12 @@ export default function AcademicsPage() {
                       else if (session.type === 'Tutorial') { typeColor = 'bg-purple-500'; typeLabel = 'T'; }
 
                       return (
-                        <div key={`${course.id}-${idx}`} className="bg-[#131418] border border-white/5 rounded-[1rem] p-4 hover:bg-white/[0.02] hover:border-white/10 transition-all flex flex-col relative group overflow-hidden">
+                        <div key={`${session.courseId}-${idx}`} className="bg-[#131418] border border-white/5 rounded-[1rem] p-4 hover:bg-white/[0.02] hover:border-white/10 transition-all flex flex-col relative group overflow-hidden">
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`${typeColor} text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center justify-center min-w-[20px]`}>{typeLabel}</span>
-                            <span className="text-white/90 font-medium text-xs truncate">{course.code}</span>
+                            <span className="text-white/90 font-medium text-xs truncate">{session.courseCode}</span>
                           </div>
-                          <span className="text-white/50 text-[11px] leading-tight line-clamp-2" title={course.name}>{course.name}</span>
+                          <span className="text-white/50 text-[11px] leading-tight line-clamp-2" title={session.courseName}>{session.courseName}</span>
                           
                           <div className="mt-3 flex flex-col gap-1">
                             <div className="text-[#00ff9d] text-[11px] flex items-center gap-1 font-mono">
