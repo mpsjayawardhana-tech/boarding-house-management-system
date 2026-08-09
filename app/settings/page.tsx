@@ -624,6 +624,33 @@ export default function SettingsPage() {
                       ))}
                     </div>
                   </div>
+                  
+                  {/* Global Mandatory Subjects */}
+                  <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-[#2a2d36]">
+                    <h4 className="text-sm font-bold text-gray-400">Global Mandatory Subjects</h4>
+                    <p className="text-xs text-gray-500 mb-2">Subjects marked here will be locked and automatically added to everyone's timetable.</p>
+                    <div className="flex flex-col gap-2">
+                      {Array.from(new Set(courses.map(c => c.code?.match(/^(.*?)(?:\s*\(|$)/)?.[1].trim() || ''))).filter(Boolean).map(baseCode => {
+                        const isMandatory = timetableConfig.mandatoryBaseCourses?.includes(baseCode) || false;
+                        return (
+                          <div key={baseCode} className="flex items-center justify-between bg-[#090A0C]/50 p-3 rounded-xl border border-[#2a2d36]">
+                            <span className="font-bold text-white text-sm">{baseCode}</span>
+                            <button
+                              onClick={() => {
+                                const newMandatory = isMandatory 
+                                  ? (timetableConfig.mandatoryBaseCourses || []).filter(code => code !== baseCode)
+                                  : [...(timetableConfig.mandatoryBaseCourses || []), baseCode];
+                                updateTimetableConfig({ mandatoryBaseCourses: newMandatory });
+                              }}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isMandatory ? 'bg-emerald-500' : 'bg-[#2a2d36]'}`}
+                            >
+                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${isMandatory ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Holiday Manager */}

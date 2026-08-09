@@ -102,6 +102,10 @@ export type CourseSession = {
   room: string;
 };
 
+export const generateSessionId = (courseId: string, session: CourseSession) => {
+  return `${courseId}-${session.dayOfWeek}-${session.startTime}-${session.type}-${session.room}`.replace(/\s+/g, '');
+};
+
 export type Course = {
   id: string;
   code?: string;
@@ -121,6 +125,7 @@ export type Holiday = {
 export type TimetableConfig = {
   validFrom: string;
   validTo: string;
+  mandatoryBaseCourses?: string[];
 };
 
 export type Attendance = {
@@ -195,7 +200,8 @@ interface AppState {
   holidays: Holiday[];
   timetableConfig: TimetableConfig;
   attendances: Attendance[];
-  enrollments: Record<string, string[]>; // userId -> courseId[]
+  enrollments: Record<string, string[]>;
+  enrolledSessions: Record<string, string[]>;
 
   addCourse: (course: Omit<Course, 'id'>) => void;
   removeCourse: (id: string) => void;
@@ -205,6 +211,8 @@ interface AppState {
   markAttendance: (userId: string, courseId: string, date: string, status: 'attended' | 'missed') => void;
   removeAttendance: (id: string) => void;
   toggleCourseEnrollment: (userId: string, courseId: string) => void;
+  setEnrollments: (userId: string, courseIds: string[]) => void;
+  toggleSessionEnrollment: (userId: string, sessionId: string) => void;
 }
 
 const defaultUsers: User[] = [
@@ -265,7 +273,7 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       pastStates: [],
       pushUndoState: () => set(state => {
-        const { pastStates, pushUndoState, undoLastAction, resetAllData, completeTask, undoTaskCompletion, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, forceNextCycle, revertPreviousCycle, updateItemQuota, adminEditProgress, addP2PDebt, updateP2PDebt, deleteP2PDebt, toggleBoardingFee, addUser, removeUser, updateUser, updateUserAvatar, toggleUserRole, setCurrentUserId, updateRosterConfig, addInventoryItem, removeInventoryItem, ...stateData } = state as any;
+        const { pastStates, pushUndoState, undoLastAction, resetAllData, completeTask, undoTaskCompletion, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, forceNextCycle, revertPreviousCycle, updateItemQuota, adminEditProgress, addP2PDebt, updateP2PDebt, deleteP2PDebt, toggleBoardingFee, addUser, removeUser, updateUser, updateUserAvatar, toggleCourseEnrollment, toggleSessionEnrollment, setCurrentUserId, updateRosterConfig, addInventoryItem, removeInventoryItem, ...stateData } = state as any;
         const snapshot = JSON.stringify(stateData);
         return { pastStates: [...state.pastStates.slice(-9), snapshot] }; // keep last 10
       }),
@@ -376,9 +384,10 @@ export const useAppStore = create<AppState>()(
             }
           ],
           holidays: [],
-          timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },
+          timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd'), mandatoryBaseCourses: [] },
           attendances: [],
-          enrollments: {}
+          enrollments: {},
+          enrolledSessions: {}
         };
       }),
 
@@ -498,9 +507,10 @@ export const useAppStore = create<AppState>()(
         { id: 'elpc220_L', code: 'ELPC 2+20 (L)', name: 'English Language Proficiency Course II', creditHours: 2, sessions: [{ dayOfWeek: 'Friday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'Mini Aud' }] }
       ],
       holidays: [],
-      timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },
+      timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd'), mandatoryBaseCourses: [] },
       attendances: [],
       enrollments: {},
+      enrolledSessions: {},
 
       completeTask: (task, actualUserIds) => {
         set((state) => {
@@ -750,6 +760,28 @@ export const useAppStore = create<AppState>()(
             [userId]: isEnrolled 
               ? userEnrollments.filter(id => id !== courseId)
               : [...userEnrollments, courseId]
+          }
+        };
+      }),
+      toggleSessionEnrollment: (userId, sessionId) => set(state => {
+        state.pushUndoState();
+        const userSessions = state.enrolledSessions[userId] || [];
+        const isEnrolled = userSessions.includes(sessionId);
+        return {
+          enrolledSessions: {
+            ...state.enrolledSessions,
+            [userId]: isEnrolled 
+              ? userSessions.filter(id => id !== sessionId)
+              : [...userSessions, sessionId]
+          }
+        };
+      }),
+      setEnrollments: (userId, courseIds) => set(state => {
+        state.pushUndoState();
+        return {
+          enrollments: {
+            ...state.enrollments,
+            [userId]: courseIds
           }
         };
       }),

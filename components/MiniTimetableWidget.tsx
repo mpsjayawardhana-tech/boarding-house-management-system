@@ -9,8 +9,26 @@ import { useState, useMemo } from "react";
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 export function MiniTimetableWidget({ isEditMode }: { isEditMode?: boolean }) {
-  const { courses = [] } = useAppStore();
+  const { courses = [], enrollments = {}, currentUserId, timetableConfig } = useAppStore();
   const currentDayName = format(new Date(), 'EEEE');
+  const rawEnrollments = enrollments[currentUserId] || [];
+  
+  // Calculate effective enrollments including mandatory subjects
+  const effectiveEnrollments = useMemo(() => {
+    let effective = [...rawEnrollments];
+    const mandatoryBases = timetableConfig?.mandatoryBaseCourses || [];
+    
+    courses.forEach(c => {
+      const baseCodeMatch = c.code?.match(/^(.*?)(?:\s*\(|$)/);
+      const baseCode = baseCodeMatch ? baseCodeMatch[1].trim() : (c.code || '');
+      
+      if (mandatoryBases.includes(baseCode) && !c.code?.includes('(P)') && !c.code?.includes('Lab') && !c.name.includes('Practical') && !c.name.includes('Lab')) {
+        if (!effective.includes(c.id)) effective.push(c.id);
+      }
+    });
+    
+    return effective;
+  }, [rawEnrollments, courses, timetableConfig?.mandatoryBaseCourses]);
   
   // Default to today if it's a weekday, otherwise Monday
   const initialDay = DAYS.includes(currentDayName) ? currentDayName : 'Monday';
@@ -18,7 +36,9 @@ export function MiniTimetableWidget({ isEditMode }: { isEditMode?: boolean }) {
 
   const todaysSessions = useMemo(() => {
     const sessions: any[] = [];
-    courses.forEach(course => {
+    const enrolledCourses = courses.filter(c => effectiveEnrollments.includes(c.id));
+    
+    enrolledCourses.forEach(course => {
       course.sessions.forEach(session => {
         if (session.dayOfWeek === selectedDay) {
           sessions.push({

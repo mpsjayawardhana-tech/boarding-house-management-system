@@ -12,7 +12,7 @@ export default function AcademicsPage() {
     users, currentUserId = '1', 
     courses, holidays, attendances, timetableConfig,
     markAttendance, removeAttendance,
-    enrollments, toggleCourseEnrollment
+    enrollments, toggleCourseEnrollment, setEnrollments
   } = useAppStore();
 
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
@@ -21,10 +21,52 @@ export default function AcademicsPage() {
   // Find current day name (e.g., 'Monday')
   const currentDayName = format(new Date(), 'EEEE');
 
-  const myEnrollments = enrollments[currentUser.id] || [];
-  const [isEditingSubjects, setIsEditingSubjects] = useState(myEnrollments.length === 0);
+  const rawEnrollments = enrollments[currentUser.id] || [];
+  
+  // Group courses by base code
+  const groupedCourses = useMemo(() => {
+    const groups: Record<string, { baseCode: string, name: string, mandatory: typeof courses, practicals: typeof courses }> = {};
+    
+    courses.forEach(c => {
+      const baseCodeMatch = c.code?.match(/^(.*?)(?:\s*\(|$)/);
+      const baseCode = baseCodeMatch ? baseCodeMatch[1].trim() : (c.code || 'UNKNOWN');
+      
+      const baseNameMatch = c.name.match(/^(.*?)(?:\s*\(|$)/);
+      const baseName = baseNameMatch ? baseNameMatch[1].trim() : c.name;
+      
+      if (!groups[baseCode]) {
+        groups[baseCode] = { baseCode, name: baseName, mandatory: [], practicals: [] };
+      }
+      
+      if (c.code?.includes('(P)') || c.code?.includes('Lab') || c.name.includes('Practical') || c.name.includes('Lab')) {
+        groups[baseCode].practicals.push(c);
+      } else {
+        groups[baseCode].mandatory.push(c);
+      }
+    });
+    
+    return Object.values(groups);
+  }, [courses]);
 
-  // Check if today is a holiday
+  // Compute effective enrollments (including global mandatory base courses)
+  const myEnrollments = useMemo(() => {
+    let effective = [...rawEnrollments];
+    const mandatoryBases = timetableConfig.mandatoryBaseCourses || [];
+    
+    groupedCourses.forEach(group => {
+      if (mandatoryBases.includes(group.baseCode)) {
+        group.mandatory.forEach(c => {
+          if (!effective.includes(c.id)) effective.push(c.id);
+        });
+      }
+    });
+    
+    return effective;
+  }, [rawEnrollments, groupedCourses, timetableConfig.mandatoryBaseCourses]);
+
+  const [isEditingSubjects, setIsEditingSubjects] = useState(myEnrollments.length === 0);
+  const [expandedCourseGroup, setExpandedCourseGroup] = useState<string | null>(null);
+
   const activeHoliday = useMemo(() => {
     const today = new Date();
     return holidays.find(h => {
@@ -117,27 +159,102 @@ export default function AcademicsPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {courses.map(course => {
-            const isEnrolled = myEnrollments.includes(course.id);
+        <div className="flex flex-col gap-4">
+          {groupedCourses.map(group => {
+            const isGloballyMandatory = (timetableConfig.mandatoryBaseCourses || []).includes(group.baseCode);
+            const groupCourseIds = [...group.mandatory, ...group.practicals].map(c => c.id);
+            const isBaseEnrolled = groupCourseIds.some(id => myEnrollments.includes(id)) || isGloballyMandatory;
+            const isExpanded = expandedCourseGroup === group.baseCode;
+            
+            // Find which practical is currently selected (if any)
+            const selectedPracticalId = group.practicals.find(c => myEnrollments.includes(c.id))?.id;
+
             return (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                key={course.id}
-                onClick={() => toggleCourseEnrollment(currentUser.id, course.id)}
-                className={`relative flex flex-col items-start text-left p-5 rounded-2xl border transition-all ${isEnrolled ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : 'bg-[#0B0C0E] border-[#2a2d36] hover:border-white/20'}`}
-              >
-                {isEnrolled && (
-                  <div className="absolute top-4 right-4 bg-emerald-500 rounded-full p-0.5">
-                    <Check className="w-3 h-3 text-white" />
+              <div key={group.baseCode} className={`flex flex-col rounded-3xl border transition-all overflow-hidden ${isBaseEnrolled ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-[#0B0C0E] border-[#2a2d36]'}`}>
+                {/* Main Card Header */}
+                <div className="flex items-center justify-between p-6">
+                  <button 
+                    disabled={isGloballyMandatory}
+                    onClick={() => {
+                      if (isGloballyMandatory) return; // Prevent toggling if it's forced
+                      
+                      if (isBaseEnrolled) {
+                        // Unenroll from everything in this base course
+                        setEnrollments(currentUser.id, rawEnrollments.filter(id => !groupCourseIds.includes(id)));
+                      } else {
+                        // Enroll in all mandatory courses automatically
+                        const mandatoryIds = group.mandatory.map(c => c.id);
+                        setEnrollments(currentUser.id, [...rawEnrollments, ...mandatoryIds]);
+                        
+                        // Auto-expand if practicals exist
+                        if (group.practicals.length > 0) {
+                          setExpandedCourseGroup(group.baseCode);
+                        }
+                      }
+                    }}
+                    className={`flex-1 flex items-center gap-4 text-left group ${isGloballyMandatory ? 'cursor-not-allowed opacity-80' : ''}`}
+                  >
+                    <div className={`w-6 h-6 rounded border flex items-center justify-center shrink-0 transition-colors ${isBaseEnrolled ? 'bg-emerald-500 border-emerald-500' : 'border-gray-500 group-hover:border-emerald-500/50'}`}>
+                      {isBaseEnrolled && <Check className="w-4 h-4 text-black" />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className={`text-lg font-bold ${isBaseEnrolled ? 'text-emerald-400' : 'text-white'}`}>{group.baseCode}</h3>
+                        {isGloballyMandatory && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded-full font-bold tracking-wider uppercase border border-emerald-500/30">Mandatory</span>}
+                      </div>
+                      <p className="text-sm text-gray-400 font-medium">{group.name}</p>
+                    </div>
+                  </button>
+
+                  {/* Expand toggle for practicals */}
+                  {group.practicals.length > 0 && (
+                    <button 
+                      onClick={() => setExpandedCourseGroup(isExpanded ? null : group.baseCode)}
+                      className={`ml-4 p-2 rounded-full transition-colors ${isBaseEnrolled ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-gray-500 hover:bg-white/5'}`}
+                    >
+                      <div className={`transform transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                        <ChevronRight className="w-5 h-5" />
+                      </div>
+                    </button>
+                  )}
+                </div>
+
+                {/* Practical Sub-selector */}
+                {group.practicals.length > 0 && isExpanded && (
+                  <div className="px-6 pb-6 pt-2 border-t border-[#2a2d36]/50 bg-black/20">
+                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Select Practical Group</p>
+                    <div className="flex flex-wrap gap-2">
+                      {group.practicals.map(practical => {
+                        const isSelected = selectedPracticalId === practical.id;
+                        return (
+                          <button
+                            key={practical.id}
+                            onClick={() => {
+                              // Remove all existing practicals for this group
+                              const practicalIds = group.practicals.map(p => p.id);
+                              const cleanedEnrollments = rawEnrollments.filter(id => !practicalIds.includes(id));
+                              
+                              // Add the selected one
+                              setEnrollments(currentUser.id, [...cleanedEnrollments, practical.id]);
+                              
+                              // Ensure mandatory are added if they weren't (safety net, unless globally mandatory)
+                              if (!isBaseEnrolled && !isGloballyMandatory) {
+                                const mandatoryIds = group.mandatory.map(c => c.id);
+                                setEnrollments(currentUser.id, [...cleanedEnrollments, practical.id, ...mandatoryIds]);
+                              }
+                            }}
+                            className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${isSelected ? 'bg-emerald-500 text-black border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.2)]' : 'bg-[#1C1E22] text-gray-400 border-[#2a2d36] hover:border-emerald-500/30 hover:text-emerald-400'}`}
+                          >
+                            {/* Extract group name like "Group I" */}
+                            {practical.name.match(/Group [IVX]+/) ? practical.name.match(/Group [IVX]+/)?.[0] : 'Lab / Practical'}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-                <span className={`text-xs font-bold mb-1 ${isEnrolled ? 'text-emerald-400' : 'text-gray-500'}`}>{course.code || 'NO-CODE'}</span>
-                <span className="font-bold text-white text-sm mb-2">{course.name}</span>
-                <span className="text-xs text-gray-400 font-medium">{course.creditHours} Credits • {course.sessions?.length || 0} Sessions/wk</span>
-              </motion.button>
-            )
+              </div>
+            );
           })}
         </div>
 
