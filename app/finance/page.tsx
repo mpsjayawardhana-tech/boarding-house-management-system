@@ -11,7 +11,9 @@ import { motion } from "framer-motion";
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function FinancePage() {
-  const { users, p2pDebts, payments, boardingFees, addP2PDebt, updateP2PDebt, deleteP2PDebt, addPayment, toggleBoardingFee, currentUserId = '1', currentUserRole } = useAppStore();
+  const { users, p2pDebts, payments, boardingFees, addP2PDebt, updateP2PDebt, deleteP2PDebt, addPayment, toggleBoardingFee, currentUserId = '1' } = useAppStore();
+  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUserRole = currentUser.role;
   
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -257,7 +259,7 @@ export default function FinancePage() {
                   value={partialPaymentAmount || ''}
                   onChange={e => setPartialPaymentAmount(parseInt(e.target.value) || 0)}
                   className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium mb-6"
-                  autoFocus
+                  required
                 />
                 <div className="flex justify-end gap-3">
                   <button onClick={() => setPartialPaymentTargetId(null)} className="px-4 py-2 rounded-xl font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-colors">Cancel</button>

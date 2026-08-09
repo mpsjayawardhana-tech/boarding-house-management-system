@@ -69,7 +69,7 @@ export function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
               </div>
             </div>
             <button 
-              onClick={() => updateUser(user.id, { role: user.role === 'admin' ? 'user' : 'admin' })}
+              onClick={() => updateUser(user.id, { role: user.role === 'admin' ? 'member' : 'admin' })}
               className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${user.role === 'admin' ? 'bg-[#00ff9d]' : 'bg-white/10'}`}
             >
               <div className={`w-4 h-4 rounded-full bg-white transition-transform absolute ${user.role === 'admin' ? 'translate-x-7' : 'translate-x-1'}`} />

@@ -3,22 +3,26 @@
 import { useAppStore } from "@/store";
 import { Camera, Settings, Upload } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconMapper } from "@/components/IconMapper";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const { 
-    users, currentUserRole, toggleUserRole, updateUserAvatar, addUser, removeUser, updateUser,
+    users, currentUserId, isAdminAuthenticated, logoutAdmin, updateUserAvatar, addUser, removeUser, updateUser,
     rosterConfig, updateRosterConfig,
     inventoryItems, inventoryCycles, forceNextCycle, revertPreviousCycle, adminEditProgress, addInventoryItem, removeInventoryItem, updateItemQuota,
     resetAllData,
     courses, holidays, timetableConfig, addCourse, removeCourse, addHoliday, removeHoliday, updateTimetableConfig
   } = useAppStore();
+  
+  const router = useRouter();
+  const currentUser = users.find(u => u.id === currentUserId) || users[0];
 
   const [activeTab, setActiveTab] = useState<'profiles' | 'roster' | 'inventory' | 'fees' | 'timetable' | 'danger'>('timetable');
   const [activeUserModal, setActiveUserModal] = useState<string | null>(null);
@@ -83,7 +87,7 @@ export default function SettingsPage() {
   const handleAddUser = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUserName.trim()) return;
-    addUser({ name: newUserName.trim(), avatar: `https://api.dicebear.com/8.x/notionists/svg?seed=${newUserName}`, isActive: true });
+    addUser({ name: newUserName.trim(), avatar: `https://api.dicebear.com/8.x/notionists/svg?seed=${newUserName}`, isActive: true, role: 'member' });
     setNewUserName('');
   };
 
@@ -114,14 +118,17 @@ export default function SettingsPage() {
     }
   };
 
-  if (currentUserRole !== 'admin') {
+  useEffect(() => {
+    if (currentUser?.name?.toLowerCase() !== 'manusha') {
+      router.push('/');
+    }
+  }, [currentUser?.name, router]);
+
+  if (currentUser?.name?.toLowerCase() !== 'manusha') {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 animate-in fade-in duration-500 pb-10 pt-20">
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Access Denied</h1>
-        <p className="text-muted-foreground">You must be an admin to view this page.</p>
-        <button onClick={toggleUserRole} className="mt-4 bg-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-md shadow-purple-500/30">
-          Switch to Admin Mode (Dev Override)
-        </button>
+        <h1 className="text-3xl font-extrabold tracking-tight text-white">Access Denied</h1>
+        <p className="text-gray-400">Redirecting...</p>
       </div>
     );
   }
@@ -136,10 +143,10 @@ export default function SettingsPage() {
           <p className="text-gray-400 mt-1">Manage global application settings, configurations, and users.</p>
         </div>
         <button 
-          onClick={toggleUserRole}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5 bg-purple-600 text-white shadow-purple-500/30"
+          onClick={logoutAdmin}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5 bg-red-500/10 text-red-400 border border-red-500/20"
         >
-          Admin Mode Active
+          Logout Admin
         </button>
       </div>
 
@@ -372,7 +379,6 @@ export default function SettingsPage() {
                     onChange={e => setNewItemUnit(e.target.value)}
                     placeholder="e.g. boxes"
                     className="p-2.5 rounded-xl border border-[#2a2d36] bg-[#23252b] text-white shadow-sm"
-                    autoFocus
                     required
                   />
                 ) : (
@@ -427,7 +433,6 @@ export default function SettingsPage() {
                                   value={editingQuotaValue}
                                   onChange={e => setEditingQuotaValue(parseInt(e.target.value) || 0)}
                                   className="w-16 p-1 text-xs border border-[#2a2d36] rounded bg-[#23252b] text-white"
-                                  autoFocus
                                 />
                                 <span className="text-xs font-bold text-gray-400">{item.unit || 'g'}</span>
                                 <button 

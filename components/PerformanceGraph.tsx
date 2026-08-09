@@ -8,7 +8,7 @@ import { getISOWeek, startOfMonth, addWeeks } from 'date-fns';
 import { generateDeterministicSchedule } from '@/utils/rosterAlgorithm';
 
 export function PerformanceGraph() {
-  const { currentUserId, completedTasksHistory, rosterConfig, users, upcomingSwaps } = useAppStore();
+  const { currentUserId, completedTasksHistory = [], rosterConfig = { activeDays: [], tasks: [] }, users = [], upcomingSwaps = [] } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
   const [isMounted, setIsMounted] = useState(false);
 

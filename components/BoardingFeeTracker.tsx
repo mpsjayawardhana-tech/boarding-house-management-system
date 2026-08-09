@@ -6,7 +6,9 @@ import Image from "next/image";
 import { useEffect, useRef } from "react";
 
 export function BoardingFeeTracker({ isReadOnly = false }: { isReadOnly?: boolean }) {
-  const { users, boardingFees, toggleBoardingFee, currentUserId, currentUserRole } = useAppStore();
+  const { users = [], boardingFees = {}, toggleBoardingFee, currentUserId } = useAppStore();
+  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUserRole = currentUser?.role;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -17,7 +19,10 @@ export function BoardingFeeTracker({ isReadOnly = false }: { isReadOnly?: boolea
     if (currentMonthEl && scrollContainerRef.current) {
       // Small timeout ensures layout is fully painted before scrolling
       setTimeout(() => {
-        currentMonthEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        const scrollLeft = currentMonthEl.offsetLeft - container.offsetWidth / 2 + currentMonthEl.offsetWidth / 2;
+        container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
       }, 100);
     }
   }, []);

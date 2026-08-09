@@ -16,8 +16,20 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { motion } from "framer-motion";
 
 export default function Dashboard() {
-  const { users, inventoryItems, inventoryLogs, p2pDebts, completedTasksHistory, currentUserId, rosterConfig, upcomingSwaps } = useAppStore();
+  const { 
+    users = [], 
+    inventoryItems = [], 
+    inventoryLogs = [], 
+    p2pDebts = [], 
+    completedTasksHistory = [], 
+    currentUserId, 
+    rosterConfig = { activeDays: [], tasks: [] }, 
+    upcomingSwaps = [] 
+  } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
+
+  // If we still have no valid currentUser, don't crash
+  if (!currentUser) return null;
 
   const weeklySchedule = useMemo(() => {
     return generateDeterministicSchedule(new Date(), users, rosterConfig, completedTasksHistory, upcomingSwaps);
@@ -25,7 +37,7 @@ export default function Dashboard() {
 
   const currentMonthIdx = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  const boardingFees = useAppStore(state => state.boardingFees);
+  const boardingFees = useAppStore(state => state.boardingFees) || {};
   const isCurrentFeePaid = currentUser ? (boardingFees[currentYear]?.[currentMonthIdx]?.[currentUser.id] || false) : false;
 
 

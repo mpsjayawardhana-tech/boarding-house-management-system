@@ -7,7 +7,10 @@ export type User = {
   name: string;
   avatar: string;
   isActive: boolean;
-  role?: 'admin' | 'user';
+  role: 'admin' | 'member';
+  username?: string;
+  password?: string;
+  birthday?: string;
 };
 
 export type TaskType = 'sweep' | 'mop' | 'toilet';
@@ -137,8 +140,10 @@ interface AppState {
   removeUser: (id: string) => void;
   updateUserAvatar: (userId: string, avatar: string) => void;
   
-  currentUserRole: 'admin' | 'user';
-  toggleUserRole: () => void;
+  isAdminAuthenticated: boolean;
+  authenticateAdmin: (username: string, password: string) => boolean;
+  logoutAdmin: () => void;
+  
   currentUserId: string;
   setCurrentUserId: (id: string) => void;
   
@@ -196,12 +201,11 @@ interface AppState {
 }
 
 const defaultUsers: User[] = [
-  { id: '1', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true },
-  { id: '2', name: 'Kasun', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kasun', isActive: true },
-  { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true },
-  { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true },
-  { id: '5', name: 'Kaveeth', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kaveeth', isActive: true },
-  { id: '6', name: 'Manusha', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Manusha', isActive: true },
+  { id: '1', name: 'Manusha', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Manusha', isActive: true, role: 'admin', username: 'Manusha', password: 'abc123' },
+  { id: '2', name: 'Kasun', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kasun', isActive: true, role: 'member', username: 'kasun', password: '123' },
+  { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true, role: 'member', username: 'champika', password: '123' },
+  { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true, role: 'member', username: 'janidu', password: '123' },
+  { id: '5', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true, role: 'member', username: 'binoj', password: '123' },
 ];
 
 const defaultRosterConfig: RosterConfig = {
@@ -388,12 +392,26 @@ export const useAppStore = create<AppState>()(
         users: state.users.map(u => u.id === userId ? { ...u, avatar } : u)
       })),
       
-      currentUserRole: 'user',
-      toggleUserRole: () => set(state => ({
-        currentUserRole: state.currentUserRole === 'admin' ? 'user' : 'admin'
-      })),
+      isAdminAuthenticated: false,
+      authenticateAdmin: (username, password) => {
+        const state = get();
+        const normalizedInputUser = username.trim().toLowerCase();
+        
+        const admin = state.users.find(u => 
+          u.role === 'admin' &&
+          u.username?.trim().toLowerCase() === normalizedInputUser &&
+          password === process.env.NEXT_PUBLIC_LOGIN_PASSWORD
+        );
+        
+        if (admin) {
+          set({ isAdminAuthenticated: true });
+          return true;
+        }
+        return false;
+      },
+      logoutAdmin: () => set({ isAdminAuthenticated: false }),
       
-      currentUserId: '1',
+      currentUserId: '',
       setCurrentUserId: (id) => set({ currentUserId: id }),
 
       rosterConfig: defaultRosterConfig,
@@ -430,83 +448,41 @@ export const useAppStore = create<AppState>()(
       payments: [],
       boardingFees: {},
       courses: [
-        {
-          id: 'c1', code: 'CMIS 2113', name: 'Object - Oriented Programming', creditHours: 3,
-          sessions: [
-            { dayOfWeek: 'Monday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' },
-            { dayOfWeek: 'Tuesday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' },
-            { dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' },
-            { dayOfWeek: 'Thursday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' },
-            { dayOfWeek: 'Friday', startTime: '12:30', endTime: '14:30', type: 'Practical', room: 'Gp. IV' }
-          ]
-        },
-        {
-          id: 'c2', code: 'CMIS 2123', name: 'Database Management System', creditHours: 3,
-          sessions: [
-            { dayOfWeek: 'Monday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'MH' },
-            { dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' },
-            { dayOfWeek: 'Monday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'LR-07' },
-            { dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. II' },
-            { dayOfWeek: 'Thursday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' },
-            { dayOfWeek: 'Thursday', startTime: '15:30', endTime: '17:30', type: 'Practical', room: 'Gp. IV' }
-          ]
-        },
-        {
-          id: 'c3', code: 'MATH 2114', name: 'Linear Algebra I', creditHours: 3,
-          sessions: [
-            { dayOfWeek: 'Tuesday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'MH' },
-            { dayOfWeek: 'Wednesday', startTime: '07:30', endTime: '08:30', type: 'Tutorial', room: 'MH' },
-            { dayOfWeek: 'Friday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-09' }
-          ]
-        },
-        {
-          id: 'c4', code: 'STAT 2112', name: 'Statistical Inference I', creditHours: 2,
-          sessions: [
-            { dayOfWeek: 'Tuesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'MH' },
-            { dayOfWeek: 'Wednesday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' }
-          ]
-        },
-        {
-          id: 'c5', code: 'IMGT 2112', name: 'Operations Management I', creditHours: 2,
-          sessions: [
-            { dayOfWeek: 'Tuesday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' },
-            { dayOfWeek: 'Thursday', startTime: '13:30', endTime: '14:30', type: 'Tutorial', room: 'Gp. I & II, LR-07' }
-          ]
-        },
-        {
-          id: 'c6', code: 'IMGT 2122', name: 'Cost & Management Accounting', creditHours: 2,
-          sessions: [
-            { dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'LR-07' },
-            { dayOfWeek: 'Thursday', startTime: '14:30', endTime: '15:30', type: 'Tutorial', room: 'Gp. I & II, LR-07' }
-          ]
-        },
-        {
-          id: 'c7', code: 'IMGT 2132', name: 'Service Industry Concepts', creditHours: 2,
-          sessions: [
-            { dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'Gp. I & II' },
-            { dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' }
-          ]
-        },
-        {
-          id: 'c8', code: 'ELTN 2112', name: 'Electricity & Magnetism', creditHours: 2,
-          sessions: [
-            { dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: '' },
-            { dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-08' }
-          ]
-        },
-        {
-          id: 'c9', code: 'ELTN 2121', name: 'Electricity & Magnetism Lab', creditHours: 1,
-          sessions: [
-            { dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. I' },
-            { dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' }
-          ]
-        },
-        {
-          id: 'c10', code: 'ELPC 2+20', name: 'English Language Proficiency Course II', creditHours: 2,
-          sessions: [
-            { dayOfWeek: 'Friday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'Mini Aud/LR 01/02/03' }
-          ]
-        }
+        { id: 'cmis2113_L', code: 'CMIS 2113 (L)', name: 'Object-Oriented Programming (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Monday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' }] },
+        { id: 'cmis2113_P_Gp1', code: 'CMIS 2113 (P) Gp. I', name: 'OOP Practical (Group I)', creditHours: 1, sessions: [{ dayOfWeek: 'Thursday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'LR-07' }] },
+        { id: 'cmis2113_P_Gp2', code: 'CMIS 2113 (P) Gp. II', name: 'OOP Practical (Group II)', creditHours: 1, sessions: [{ dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' }] },
+        { id: 'cmis2113_P_Gp3', code: 'CMIS 2113 (P) Gp. III', name: 'OOP Practical (Group III)', creditHours: 1, sessions: [{ dayOfWeek: 'Tuesday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' }] },
+        { id: 'cmis2113_P_Gp4', code: 'CMIS 2113 (P) Gp. IV', name: 'OOP Practical (Group IV)', creditHours: 1, sessions: [{ dayOfWeek: 'Friday', startTime: '12:30', endTime: '14:30', type: 'Practical', room: 'Gp. IV' }] },
+        
+        { id: 'cmis2123_L', code: 'CMIS 2123 (L)', name: 'Database Management System (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Monday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'MH' }] },
+        { id: 'cmis2123_T', code: 'CMIS 2123 (T)', name: 'Database Management (Tutorial)', creditHours: 0, sessions: [{ dayOfWeek: 'Monday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'LR-07' }] },
+        { id: 'cmis2123_P_Gp1', code: 'CMIS 2123 (P) Gp. I', name: 'DBMS Practical (Group I)', creditHours: 1, sessions: [{ dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. I' }] },
+        { id: 'cmis2123_P_Gp2', code: 'CMIS 2123 (P) Gp. II', name: 'DBMS Practical (Group II)', creditHours: 1, sessions: [{ dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. II' }] },
+        { id: 'cmis2123_P_Gp3', code: 'CMIS 2123 (P) Gp. III', name: 'DBMS Practical (Group III)', creditHours: 1, sessions: [{ dayOfWeek: 'Thursday', startTime: '08:30', endTime: '10:30', type: 'Practical', room: 'Gp. III' }] },
+        { id: 'cmis2123_P_Gp4', code: 'CMIS 2123 (P) Gp. IV', name: 'DBMS Practical (Group IV)', creditHours: 1, sessions: [{ dayOfWeek: 'Thursday', startTime: '15:30', endTime: '17:30', type: 'Practical', room: 'Gp. IV' }] },
+
+        { id: 'stat2112_L', code: 'STAT 2112 (L)', name: 'Statistical Inference I (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Wednesday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' }] },
+        { id: 'stat2112_T', code: 'STAT 2112 (T)', name: 'Statistical Inference I (Tutorial)', creditHours: 0, sessions: [{ dayOfWeek: 'Tuesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'MH' }] },
+
+        { id: 'imgt2112_L', code: 'IMGT 2112 (L)', name: 'Operations Management I (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Tuesday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' }] },
+        { id: 'imgt2112_T', code: 'IMGT 2112 (T)', name: 'Operations Mgt I (Tutorial Gp I&II)', creditHours: 0, sessions: [{ dayOfWeek: 'Thursday', startTime: '13:30', endTime: '14:30', type: 'Tutorial', room: 'LR-07' }] },
+
+        { id: 'imgt2122_L', code: 'IMGT 2122 (L)', name: 'Cost & Management Accounting (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Monday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'LR-07' }] },
+        { id: 'imgt2122_T', code: 'IMGT 2122 (T)', name: 'Cost & Mgt Acc (Tutorial Gp I&II)', creditHours: 0, sessions: [{ dayOfWeek: 'Thursday', startTime: '14:30', endTime: '15:30', type: 'Tutorial', room: 'LR-07' }] },
+
+        { id: 'imgt2132_L', code: 'IMGT 2132 (L)', name: 'Service Industry Concepts (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-07' }] },
+        { id: 'imgt2132_T', code: 'IMGT 2132 (T)', name: 'Service Ind. Concepts (Tutorial Gp I&II)', creditHours: 0, sessions: [{ dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: 'Gp. I & II' }] },
+
+        { id: 'eltn2112_L', code: 'ELTN 2112 (L)', name: 'Electricity & Magnetism (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Thursday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-08' }] },
+        { id: 'eltn2112_T', code: 'ELTN 2112 (T)', name: 'Electricity & Magnetism (Tutorial)', creditHours: 0, sessions: [{ dayOfWeek: 'Wednesday', startTime: '15:30', endTime: '16:30', type: 'Tutorial', room: '' }] },
+
+        { id: 'eltn2121_P_Gp1', code: 'ELTN 2121 (P) Gp. I', name: 'Elec & Mag Lab (Group I)', creditHours: 1, sessions: [{ dayOfWeek: 'Wednesday', startTime: '10:30', endTime: '12:30', type: 'Practical', room: 'Gp. I' }] },
+        { id: 'eltn2121_P_Gp2', code: 'ELTN 2121 (P) Gp. II', name: 'Elec & Mag Lab (Group II)', creditHours: 1, sessions: [{ dayOfWeek: 'Wednesday', startTime: '13:30', endTime: '15:30', type: 'Practical', room: 'Gp. II' }] },
+
+        { id: 'math2114_L', code: 'MATH 2114 (L)', name: 'Linear Algebra I (Lecture)', creditHours: 3, sessions: [{ dayOfWeek: 'Tuesday', startTime: '13:30', endTime: '15:30', type: 'Lecture', room: 'MH' }, { dayOfWeek: 'Friday', startTime: '10:30', endTime: '12:30', type: 'Lecture', room: 'LR-09' }] },
+        { id: 'math2114_T', code: 'MATH 2114 (T)', name: 'Linear Algebra I (Tutorial)', creditHours: 0, sessions: [{ dayOfWeek: 'Wednesday', startTime: '07:30', endTime: '08:30', type: 'Tutorial', room: 'MH' }] },
+
+        { id: 'elpc220_L', code: 'ELPC 2+20 (L)', name: 'English Language Proficiency Course II', creditHours: 2, sessions: [{ dayOfWeek: 'Friday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'Mini Aud' }] }
       ],
       holidays: [],
       timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd') },
@@ -769,6 +745,18 @@ export const useAppStore = create<AppState>()(
     {
       name: 'ms-of-pcg-storage',
       storage: createJSONStorage(() => cloudStorage),
+      partialize: (state) => {
+        const { courses, holidays, currentUserId, isAdminAuthenticated, ...rest } = state;
+        return rest;
+      },
+      merge: (persistedState: any, currentState: AppState) => {
+        return {
+          ...currentState,
+          ...persistedState,
+          currentUserId: '',
+          isAdminAuthenticated: false
+        };
+      },
     }
   )
 );

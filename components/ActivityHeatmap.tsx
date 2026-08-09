@@ -5,7 +5,7 @@ import { format, subDays, startOfWeek, addDays, getDay } from "date-fns";
 import { useMemo } from "react";
 
 export function ActivityHeatmap() {
-  const { completedTasksHistory, inventoryLogs, users } = useAppStore();
+  const { completedTasksHistory = [], inventoryLogs = [], users = [] } = useAppStore();
 
   const heatmapData = useMemo(() => {
     // Generate the last 364 days (52 weeks * 7 days)

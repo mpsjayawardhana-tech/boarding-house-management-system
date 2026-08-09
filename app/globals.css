@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Disable auto-scrolling to accommodate late-rendering elements */
+html, body, main {
+  overflow-anchor: none;
+}
+
+
 @layer base {
   :root {
     --background: 220 13% 8%; /* #121417 */

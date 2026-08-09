@@ -1,12 +1,13 @@
 "use client";
 
-import { Bell, Shield, User, Brush, Droplets, Bath, Menu, X } from "lucide-react";
+import { Bell, Menu, X, Check, Search, Calendar, Brush, Droplets, Bath, PartyPopper } from "lucide-react";
+import { PersonalProfileModal } from "./PersonalProfileModal";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/store";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { addWeeks } from "date-fns";
+import { addWeeks, format } from "date-fns";
 import { generateDeterministicSchedule } from "@/utils/rosterAlgorithm";
 
 const links = [
@@ -21,13 +22,15 @@ const links = [
 import { useMagnetic } from "@/hooks/useMagnetic";
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 
-function MagneticLink({ link, isActive }: { link: typeof links[0], isActive: boolean }) {
+function MagneticLink({ link, isActive, onClick }: { link: typeof links[0], isActive: boolean, onClick: () => void }) {
   const ref = useMagnetic<HTMLAnchorElement>();
   
   return (
     <Link
       ref={ref}
       href={link.href}
+      scroll={false}
+      onClick={onClick}
       className={`px-5 py-2 rounded-full font-sans text-sm font-medium transition-all duration-300 ease-out ${
         isActive 
           ? 'bg-white/[0.12] text-white shadow-inner' 
@@ -41,11 +44,20 @@ function MagneticLink({ link, isActive }: { link: typeof links[0], isActive: boo
 
 export function TopNav() {
   const pathname = usePathname();
-  const { users, currentUserId, setCurrentUserId, currentUserRole, toggleUserRole, rosterConfig, completedTasksHistory, upcomingSwaps } = useAppStore();
+  const { 
+    users = [], 
+    currentUserId, 
+    setCurrentUserId, 
+    isAdminAuthenticated, 
+    rosterConfig = { activeDays: [], tasks: [] }, 
+    completedTasksHistory = [], 
+    upcomingSwaps = [] 
+  } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
   
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const { scrollY } = useScroll();
@@ -54,6 +66,12 @@ export function TopNav() {
   useMotionValueEvent(scrollY, "change", (latest) => {
     setIsScrolled(latest > 50);
   });
+
+  const handleNavClick = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    const scrollContainer = document.getElementById('main-scroll-container');
+    if (scrollContainer) scrollContainer.scrollTop = 0;
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -80,6 +98,13 @@ export function TopNav() {
     });
     return tasks;
   }, [currentUser, rosterConfig, users, completedTasksHistory, upcomingSwaps]);
+
+  const birthdayNotifications = useMemo(() => {
+    const today = format(new Date(), 'MM-dd');
+    return users.filter(u => u.birthday && format(new Date(u.birthday), 'MM-dd') === today);
+  }, [users]);
+
+  const totalNotifications = upcomingTasks.length + birthdayNotifications.length;
 
   return (
     <>
@@ -108,37 +133,14 @@ export function TopNav() {
       {/* Center: Navigation Links */}
       <motion.nav layout className={`hidden md:flex items-center gap-2 ${isScrolled ? 'mx-4' : ''}`}>
         {links.map((link) => {
+          if (link.name === "Settings" && currentUser?.name?.toLowerCase() !== 'manusha') return null;
           const isActive = pathname === link.href;
-          return <MagneticLink key={link.name} link={link} isActive={isActive} />;
+          return <MagneticLink key={link.name} link={link} isActive={isActive} onClick={handleNavClick} />;
         })}
       </motion.nav>
 
       {/* Right: User Controls (Desktop) */}
-      <motion.div layout className="hidden md:flex items-center gap-6">
-        {/* User Switcher */}
-        {!isScrolled && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2 bg-black/20 p-1.5 rounded-xl border border-[#2a2d36]">
-            <select 
-              value={currentUserId} 
-              onChange={e => setCurrentUserId(e.target.value)}
-              className="bg-[#23252b] border border-[#2a2d36] rounded-lg px-2 py-1.5 text-xs font-semibold shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/50 text-white"
-            >
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.name}</option>
-              ))}
-            </select>
-          </motion.div>
-        )}
-
-        {/* Admin Mode Toggle */}
-        <button 
-          onClick={toggleUserRole}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg border transition-colors ${currentUserRole === 'admin' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-[#23252b] text-gray-400 border-[#2a2d36]'}`}
-          title="Toggle Admin Role"
-        >
-          {currentUserRole === 'admin' ? <Shield className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-          {!isScrolled && <span>{currentUserRole === 'admin' ? 'Admin' : 'Member'}</span>}
-        </button>
+      <motion.div layout className="hidden md:flex items-center gap-4 md:mr-6 lg:mr-10">
 
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
@@ -147,7 +149,7 @@ export function TopNav() {
             className={`relative p-2 rounded-xl transition-all ${showNotifications ? 'bg-white/10 text-white' : 'bg-transparent text-gray-400 hover:text-white hover:bg-white/5'}`}
           >
             <Bell className="w-5 h-5" />
-            {upcomingTasks.length > 0 && (
+            {totalNotifications > 0 && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full"></span>
             )}
           </button>
@@ -156,9 +158,23 @@ export function TopNav() {
           {showNotifications && (
             <div className="absolute right-0 mt-3 w-80 bg-[#141618]/90 backdrop-blur-2xl border border-white/[0.08] shadow-2xl rounded-2xl overflow-hidden animate-in fade-in slide-in-from-top-4">
               <div className="p-4 border-b border-[#2a2d36]/50">
-                <h3 className="font-sans font-bold text-white text-sm">Upcoming Duties</h3>
+                <h3 className="font-sans font-bold text-white text-sm">Notifications</h3>
               </div>
               <div className="flex flex-col max-h-80 overflow-y-auto">
+                {birthdayNotifications.length > 0 && (
+                  birthdayNotifications.map(u => (
+                    <div key={`bday-${u.id}`} className="flex items-center gap-4 p-4 border-b border-emerald-500/20 bg-emerald-500/5 last:border-0 hover:bg-emerald-500/10 transition-colors">
+                      <div className="bg-emerald-500/20 p-2 rounded-xl border border-emerald-500/30 shrink-0">
+                        <PartyPopper size={16} className="text-emerald-400" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-white">Happy Birthday, {u.name}! 🎂</span>
+                        <span className="text-xs text-emerald-400 font-semibold">Wish them a great day!</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+                
                 {upcomingTasks.length > 0 ? (
                   upcomingTasks.map((task, idx) => (
                     <div key={`${task.id}-${idx}`} className="flex items-center gap-4 p-4 border-b border-[#2a2d36]/50 last:border-0 hover:bg-white/5 transition-colors cursor-pointer">
@@ -172,14 +188,24 @@ export function TopNav() {
                     </div>
                   ))
                 ) : (
-                  <div className="p-8 text-center">
-                    <p className="text-gray-400 font-mono text-sm">No upcoming duties for the next week.</p>
-                  </div>
+                  upcomingTasks.length === 0 && birthdayNotifications.length === 0 ? (
+                    <div className="p-8 text-center">
+                      <p className="text-gray-400 font-mono text-sm">No new notifications.</p>
+                    </div>
+                  ) : null
                 )}
               </div>
             </div>
           )}
         </div>
+
+        {/* Profile Picture */}
+        <button 
+          onClick={() => setIsProfileModalOpen(true)}
+          className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-transparent hover:border-emerald-500/50 transition-all shrink-0"
+        >
+          <Image src={currentUser?.avatar || '/default-avatar.png'} alt="Profile" fill className="object-cover" />
+        </button>
       </motion.div>
 
       {/* Mobile Menu Button */}
@@ -203,12 +229,18 @@ export function TopNav() {
           >
             <nav className="flex flex-col gap-4 mb-10">
             {links.map((link) => {
+              if (link.name === "Settings" && currentUser?.name?.toLowerCase() !== 'manusha') return null;
               const isActive = pathname === link.href;
+              
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  scroll={false}
+                  onClick={() => {
+                    handleNavClick();
+                    setIsMobileMenuOpen(false);
+                  }}
                   className={`text-2xl font-light py-4 border-b border-[#2a2d36] transition-colors ${
                     isActive ? 'text-white' : 'text-gray-500'
                   }`}
@@ -247,30 +279,15 @@ export function TopNav() {
               </div>
             )}
 
-            {/* User Switcher */}
-            <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase font-bold text-gray-500">Switch User</label>
-              <select 
-                value={currentUserId} 
-                onChange={e => setCurrentUserId(e.target.value)}
-                className="bg-[#23252b] border border-[#2a2d36] rounded-xl px-4 py-3 text-sm font-semibold text-white focus:outline-none"
-              >
-                {users.map(u => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <button 
-              onClick={toggleUserRole}
-              className={`w-full flex items-center justify-center gap-2 text-sm uppercase tracking-wider font-bold px-4 py-3 rounded-xl border transition-colors ${currentUserRole === 'admin' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-[#23252b] text-gray-400 border-[#2a2d36]'}`}
-            >
-              {currentUserRole === 'admin' ? <><Shield className="w-4 h-4" /> Admin Mode Active</> : <><User className="w-4 h-4" /> Switch to Admin</>}
-            </button>
           </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <PersonalProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+      />
     </>
   );
 }
