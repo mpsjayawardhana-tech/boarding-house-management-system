@@ -6,8 +6,15 @@ import { GlobalAuthGuard } from "@/components/GlobalAuthGuard";
 import { ScrollReset } from "@/components/ScrollReset";
 
 export const metadata: Metadata = {
-  title: "MS of PCG | Boarding House Manager",
+  title: "PCG",
   description: "Smart duty roster, inventory, and finance tracker for MS of PCG.",
+  applicationName: "PCG",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "PCG",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export default function RootLayout({
