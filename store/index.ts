@@ -221,6 +221,7 @@ const defaultUsers: User[] = [
   { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true, role: 'member', username: 'champika', password: 'abc123', birthday: '2001-02-02', email: 'champika@example.com', phone: '0722222222', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
   { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true, role: 'member', username: 'janidu', password: 'abc123', birthday: '2002-03-03', email: 'janidu@example.com', phone: '0733333333', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
   { id: '5', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true, role: 'member', username: 'binoj', password: 'abc123', birthday: '2003-04-04', email: 'binoj@example.com', phone: '0744444444', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '6', name: 'Kaveeth', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kaveeth', isActive: true, role: 'member', username: 'kaveeth', password: 'abc123', birthday: '2005-05-05', email: 'kaveeth@example.com', phone: '0755555555', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
 ];
 
 const defaultRosterConfig: RosterConfig = {
@@ -792,7 +793,7 @@ export const useAppStore = create<AppState>()(
       version: 1,
       storage: createJSONStorage(() => cloudStorage),
       partialize: (state) => {
-        const { courses, holidays, currentUserId, isAdminAuthenticated, users, ...rest } = state;
+        const { currentUserId, isAdminAuthenticated, ...rest } = state;
         return rest;
       },
       merge: (persistedState: any, currentState: AppState) => {
