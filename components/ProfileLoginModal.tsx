@@ -32,7 +32,7 @@ export function ProfileLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
       }
     } else {
       // Standard member login
-      if (password === process.env.NEXT_PUBLIC_LOGIN_PASSWORD) {
+      if (password.trim() === (user.password || 'abc123')) {
         setCurrentUserId(user.id);
         onClose();
       } else {

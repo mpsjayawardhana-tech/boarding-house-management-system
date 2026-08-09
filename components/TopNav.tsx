@@ -16,7 +16,8 @@ const links = [
   { name: "Inventory", href: "/inventory" },
   { name: "Academics", href: "/academics" },
   { name: "Finance", href: "/finance" },
-  { name: "Settings", href: "/settings" }
+  { name: "Settings", href: "/settings" },
+  { name: "User", href: "/user" }
 ];
 
 import { useMagnetic } from "@/hooks/useMagnetic";
@@ -51,14 +52,16 @@ export function TopNav() {
     isAdminAuthenticated, 
     rosterConfig = { activeDays: [], tasks: [] }, 
     completedTasksHistory = [], 
-    upcomingSwaps = [] 
+    upcomingSwaps = [],
+    setProfileModalOpen
   } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
   
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
 
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -77,6 +80,9 @@ export function TopNav() {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setShowProfileDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -133,6 +139,7 @@ export function TopNav() {
       {/* Center: Navigation Links */}
       <motion.nav layout className={`hidden md:flex items-center gap-2 ${isScrolled ? 'mx-4' : ''}`}>
         {links.map((link) => {
+          if (link.name === "User") return null;
           if (link.name === "Settings" && currentUser?.name?.toLowerCase() !== 'manusha') return null;
           const isActive = pathname === link.href;
           return <MagneticLink key={link.name} link={link} isActive={isActive} onClick={handleNavClick} />;
@@ -199,13 +206,72 @@ export function TopNav() {
           )}
         </div>
 
-        {/* Profile Picture */}
-        <button 
-          onClick={() => setIsProfileModalOpen(true)}
-          className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-transparent hover:border-emerald-500/50 transition-all shrink-0"
-        >
-          <Image src={currentUser?.avatar || '/default-avatar.png'} alt="Profile" fill className="object-cover" />
-        </button>
+        {/* Profile Picture & Dropdown */}
+        <div className="relative" ref={profileDropdownRef}>
+          <button 
+            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+            className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-transparent hover:border-emerald-500/50 transition-all shrink-0"
+          >
+            <Image src={currentUser?.avatar || '/default-avatar.png'} alt="Profile" fill className="object-cover" />
+          </button>
+          
+          <AnimatePresence>
+            {showProfileDropdown && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute right-0 mt-3 w-72 bg-[#141618]/90 backdrop-blur-2xl border border-white/[0.08] shadow-2xl rounded-2xl overflow-hidden"
+              >
+                <div className="p-5 flex flex-col gap-4">
+                  <div className="flex items-center gap-4 border-b border-white/10 pb-4">
+                    <div className="w-14 h-14 relative rounded-full overflow-hidden shrink-0 border border-white/20">
+                      <Image src={currentUser?.avatar || '/default-avatar.png'} alt="Avatar" fill className="object-cover" />
+                    </div>
+                    <div className="flex flex-col">
+                      <h4 className="text-white font-bold text-lg leading-tight">{currentUser?.name}</h4>
+                      <p className="text-emerald-400 text-xs font-semibold uppercase tracking-wider">{currentUser?.role}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3 text-sm text-gray-400">
+                    <div className="flex justify-between items-center">
+                      <span>Birthday</span>
+                      <span className="text-white">{currentUser?.birthday || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Email</span>
+                      <span className="text-white">{currentUser?.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Phone</span>
+                      <span className="text-white">{currentUser?.phone || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 mt-2">
+                    <button 
+                      onClick={() => {
+                        setShowProfileDropdown(false);
+                        setProfileModalOpen(true);
+                      }}
+                      className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold py-2 rounded-xl transition-colors border border-white/10"
+                    >
+                      Edit Profile
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setCurrentUserId('');
+                        setShowProfileDropdown(false);
+                      }}
+                      className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 font-semibold py-2 rounded-xl transition-colors border border-red-500/20"
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
 
       {/* Mobile Menu Button */}
@@ -283,11 +349,6 @@ export function TopNav() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <PersonalProfileModal 
-        isOpen={isProfileModalOpen} 
-        onClose={() => setIsProfileModalOpen(false)} 
-      />
     </>
   );
 }

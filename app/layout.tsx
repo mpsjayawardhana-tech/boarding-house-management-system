@@ -9,11 +9,15 @@ export const metadata: Metadata = {
   title: "PCG",
   description: "Smart duty roster, inventory, and finance tracker for MS of PCG.",
   applicationName: "PCG",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=2",
   appleWebApp: {
     capable: true,
     title: "PCG",
     statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icon?v=2",
+    apple: "/apple-icon?v=2",
   },
 };
 

@@ -11,6 +11,9 @@ export type User = {
   username?: string;
   password?: string;
   birthday?: string;
+  email?: string;
+  phone?: string;
+  dashboardLayout?: string[];
 };
 
 export type TaskType = 'sweep' | 'mop' | 'toilet';
@@ -136,13 +139,17 @@ interface AppState {
   
   users: User[];
   addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
   removeUser: (id: string) => void;
+  updateUser: (id: string, user: Partial<User>) => void;
   updateUserAvatar: (userId: string, avatar: string) => void;
+  updateUserDashboardLayout: (userId: string, layout: string[]) => void;
   
   isAdminAuthenticated: boolean;
   authenticateAdmin: (username: string, password: string) => boolean;
   logoutAdmin: () => void;
+  
+  isProfileModalOpen: boolean;
+  setProfileModalOpen: (isOpen: boolean) => void;
   
   currentUserId: string;
   setCurrentUserId: (id: string) => void;
@@ -201,11 +208,11 @@ interface AppState {
 }
 
 const defaultUsers: User[] = [
-  { id: '1', name: 'Manusha', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Manusha', isActive: true, role: 'admin', username: 'Manusha', password: 'abc123' },
-  { id: '2', name: 'Kasun', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kasun', isActive: true, role: 'member', username: 'kasun', password: '123' },
-  { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true, role: 'member', username: 'champika', password: '123' },
-  { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true, role: 'member', username: 'janidu', password: '123' },
-  { id: '5', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true, role: 'member', username: 'binoj', password: '123' },
+  { id: '1', name: 'Manusha', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Manusha', isActive: true, role: 'admin', username: 'Manusha', password: 'abc123', birthday: '2004-12-01', email: 'manusha@example.com', phone: '0712345678', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '2', name: 'Kasun', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kasun', isActive: true, role: 'member', username: 'kasun', password: 'abc123', birthday: '2000-01-01', email: 'kasun@example.com', phone: '0711111111', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true, role: 'member', username: 'champika', password: 'abc123', birthday: '2001-02-02', email: 'champika@example.com', phone: '0722222222', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true, role: 'member', username: 'janidu', password: 'abc123', birthday: '2002-03-03', email: 'janidu@example.com', phone: '0733333333', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '5', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true, role: 'member', username: 'binoj', password: 'abc123', birthday: '2003-04-04', email: 'binoj@example.com', phone: '0744444444', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
 ];
 
 const defaultRosterConfig: RosterConfig = {
@@ -378,7 +385,7 @@ export const useAppStore = create<AppState>()(
       users: defaultUsers,
       addUser: (user) => set(state => {
         state.pushUndoState();
-        return { users: [...state.users, { ...user, id: Date.now().toString(), isActive: true }] };
+        return { users: [...state.users, { password: 'abc123', ...user, id: Date.now().toString(), isActive: true }] };
       }),
       updateUser: (id, user) => set(state => {
         state.pushUndoState();
@@ -391,6 +398,10 @@ export const useAppStore = create<AppState>()(
       updateUserAvatar: (userId, avatar) => set(state => ({
         users: state.users.map(u => u.id === userId ? { ...u, avatar } : u)
       })),
+      updateUserDashboardLayout: (userId, layout) => set(state => {
+        state.pushUndoState();
+        return { users: state.users.map(u => u.id === userId ? { ...u, dashboardLayout: layout } : u) };
+      }),
       
       isAdminAuthenticated: false,
       authenticateAdmin: (username, password) => {
@@ -399,17 +410,19 @@ export const useAppStore = create<AppState>()(
         
         const admin = state.users.find(u => 
           u.role === 'admin' &&
-          u.username?.trim().toLowerCase() === normalizedInputUser &&
-          password === process.env.NEXT_PUBLIC_LOGIN_PASSWORD
+          u.username?.trim().toLowerCase() === normalizedInputUser
         );
         
-        if (admin) {
+        if (admin && password.trim() === (admin.password || 'abc123')) {
           set({ isAdminAuthenticated: true });
           return true;
         }
         return false;
       },
       logoutAdmin: () => set({ isAdminAuthenticated: false }),
+      
+      isProfileModalOpen: false,
+      setProfileModalOpen: (isOpen) => set({ isProfileModalOpen: isOpen }),
       
       currentUserId: '',
       setCurrentUserId: (id) => set({ currentUserId: id }),
@@ -744,9 +757,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'ms-of-pcg-storage',
+      version: 1,
       storage: createJSONStorage(() => cloudStorage),
       partialize: (state) => {
-        const { courses, holidays, currentUserId, isAdminAuthenticated, ...rest } = state;
+        const { courses, holidays, currentUserId, isAdminAuthenticated, users, ...rest } = state;
         return rest;
       },
       merge: (persistedState: any, currentState: AppState) => {

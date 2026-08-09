@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { User } from "lucide-react";
 import { ProfileLoginModal } from "./ProfileLoginModal";
+import { PersonalProfileModal } from "./PersonalProfileModal";
 
 export function GlobalAuthGuard({ children }: { children: React.ReactNode }) {
   const { currentUserId } = useAppStore();
@@ -67,5 +68,10 @@ export function GlobalAuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <PersonalProfileModal />
+    </>
+  );
 }
