@@ -86,3 +86,9 @@ html, body, main {
 .stagger-3 { animation: slideUpFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
 .stagger-4 { animation: slideUpFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both; }
 .stagger-5 { animation: slideUpFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both; }
+
+/* Mobile Native Failsafe for Inputs */
+input, textarea, select {
+  font-size: 16px !important;
+  touch-action: pan-x pan-y;
+}

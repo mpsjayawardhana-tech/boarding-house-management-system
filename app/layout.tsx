@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TopNav } from "@/components/TopNav";
 import { UndoToast } from "@/components/UndoToast";
@@ -19,6 +19,14 @@ export const metadata: Metadata = {
     icon: "/icon?v=2",
     apple: "/apple-icon?v=2",
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#0C0D0E",
 };
 
 export default function RootLayout({

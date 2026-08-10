@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppStore } from "@/store";
-import { X, Shield, ShieldOff, CheckCircle2, User } from "lucide-react";
+import { X, Shield, ShieldOff, CheckCircle2, User, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { CustomCloudinaryUpload } from "./CustomCloudinaryUpload";
 
@@ -11,7 +11,7 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
-  const { users, updateUser, updateUserAvatar } = useAppStore();
+  const { users, updateUser, updateUserAvatar, removeUser } = useAppStore();
   const user = users.find(u => u.id === userId);
 
   if (!user) return null;
@@ -95,6 +95,20 @@ export function UserProfileModal({ userId, onClose }: UserProfileModalProps) {
             </button>
           </div>
         </div>
+
+        {/* Delete User Button */}
+        <button 
+          onClick={() => {
+            if (window.confirm(`Are you sure you want to permanently delete ${user.name}? This action cannot be undone.`)) {
+              removeUser(user.id);
+              onClose();
+            }
+          }}
+          className="w-full mt-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 py-3 rounded-2xl font-bold transition-colors flex items-center justify-center gap-2"
+        >
+          <Trash2 className="w-5 h-5" />
+          Delete User Account
+        </button>
 
       </div>
     </div>
