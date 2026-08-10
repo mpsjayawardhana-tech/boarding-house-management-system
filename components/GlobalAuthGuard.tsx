@@ -4,15 +4,18 @@ import { useAppStore } from "@/store";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
-import { ProfileLoginModal } from "./ProfileLoginModal";
+import { SaaSAuthModal } from "./SaaSAuthModal";
 import { PersonalProfileModal } from "./PersonalProfileModal";
 
 export function GlobalAuthGuard({ children }: { children: React.ReactNode }) {
   const { currentUserId } = useAppStore();
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const pathname = usePathname();
 
-  if (!currentUserId) {
+  // If unauthenticated but on /admin, let the /admin page handle its own login
+  if (!currentUserId && pathname !== '/admin') {
     return (
       <div className="w-full min-h-screen bg-[#090A0C] flex flex-col relative overflow-hidden">
         {/* Public Landing Page Header */}
@@ -22,7 +25,7 @@ export function GlobalAuthGuard({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center"
           >
-            <Image src="/pcglogo.png" alt="PCG Logo" width={100} height={30} className="invert opacity-90 object-contain" />
+            <Image src="/bodimalogo.png" alt="Bodima Logo" width={120} height={40} className="invert opacity-90 object-contain" />
           </motion.div>
           <motion.button 
             initial={{ opacity: 0, x: 20 }}
@@ -63,7 +66,10 @@ export function GlobalAuthGuard({ children }: { children: React.ReactNode }) {
           </motion.div>
         </div>
 
-        <ProfileLoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+        <SaaSAuthModal 
+          isOpen={isLoginModalOpen} 
+          onClose={() => setIsLoginModalOpen(false)} 
+        />
       </div>
     );
   }

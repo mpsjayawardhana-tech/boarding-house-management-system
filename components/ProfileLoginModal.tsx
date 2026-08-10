@@ -23,7 +23,7 @@ export function ProfileLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
     const user = users.find(u => u.id === selectedUserId);
     if (!user) return;
 
-    if (user.role === 'admin') {
+    if (user.role === 'admin' || user.role === 'super_admin') {
       if (authenticateAdmin(user.username || '', password)) {
         setCurrentUserId(user.id);
         onClose();
@@ -80,7 +80,7 @@ export function ProfileLoginModal({ isOpen, onClose }: { isOpen: boolean; onClos
                     exit={{ opacity: 0, x: -20 }}
                     className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4"
                   >
-                    {users.map((user) => (
+                    {users.filter(u => u.role !== 'super_admin').map((user) => (
                       <button
                         key={user.id}
                         onClick={() => handleUserSelect(user.id)}

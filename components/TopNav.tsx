@@ -53,9 +53,11 @@ export function TopNav() {
     rosterConfig = { activeDays: [], tasks: [] }, 
     completedTasksHistory = [], 
     upcomingSwaps = [],
-    setProfileModalOpen
+    setProfileModalOpen,
+    rooms = []
   } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentRoom = rooms.find(r => r.id === currentUser?.roomId) || rooms[0];
   
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -103,7 +105,11 @@ export function TopNav() {
       });
     });
     return tasks;
-  }, [currentUser, rosterConfig, users, completedTasksHistory, upcomingSwaps]);
+  }, [currentUser, users, rosterConfig, completedTasksHistory, upcomingSwaps]);
+
+  if (pathname === '/admin') {
+    return null;
+  }
 
   const birthdayNotifications = useMemo(() => {
     const today = format(new Date(), 'MM-dd');
@@ -131,9 +137,19 @@ export function TopNav() {
       {/* Left: Logo */}
       <motion.div 
         layout
-        className="flex items-center"
+        className="flex items-center gap-3"
       >
-        <Image src="/pcglogo.png" alt="PCG Logo" width={isScrolled ? 60 : 80} height={isScrolled ? 22 : 30} className="invert opacity-90 object-contain transition-all duration-500" />
+        {currentRoom?.logoUrl ? (
+          <Image src={currentRoom.logoUrl} alt={currentRoom.name} width={isScrolled ? 40 : 50} height={isScrolled ? 40 : 50} className="object-contain rounded-lg shadow-md" />
+        ) : (
+          <div className="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-black tracking-widest">
+            {currentRoom?.name ? currentRoom.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() : 'RT'}
+          </div>
+        )}
+        <div className="flex flex-col hidden sm:flex">
+          <span className="font-extrabold text-sm text-white tracking-tight leading-tight">{currentRoom?.name || 'My Room'}</span>
+          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{currentRoom?.faculty || 'Dashboard'}</span>
+        </div>
       </motion.div>
 
       {/* Center: Navigation Links */}

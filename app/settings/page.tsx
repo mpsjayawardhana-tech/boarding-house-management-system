@@ -11,6 +11,7 @@ import { IconMapper } from "@/components/IconMapper";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { RoomLogoCropper } from "@/components/RoomLogoCropper";
 
 export default function SettingsPage() {
   const { 
@@ -18,13 +19,15 @@ export default function SettingsPage() {
     rosterConfig, updateRosterConfig,
     inventoryItems, inventoryCycles, forceNextCycle, revertPreviousCycle, adminEditProgress, addInventoryItem, removeInventoryItem, updateItemQuota,
     resetAllData,
-    courses, holidays, timetableConfig, addCourse, removeCourse, addHoliday, removeHoliday, updateTimetableConfig
+    courses, holidays, timetableConfig, addCourse, removeCourse, addHoliday, removeHoliday, updateTimetableConfig,
+    rooms, updateRoom
   } = useAppStore();
   
   const router = useRouter();
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentRoom = rooms.find(r => r.id === currentUser?.roomId);
 
-  const [activeTab, setActiveTab] = useState<'profiles' | 'roster' | 'inventory' | 'fees' | 'timetable' | 'danger'>('timetable');
+  const [activeTab, setActiveTab] = useState<'roomConfig' | 'profiles' | 'roster' | 'inventory' | 'fees' | 'timetable' | 'danger'>('roomConfig');
   const [activeUserModal, setActiveUserModal] = useState<string | null>(null);
   const [newUserName, setNewUserName] = useState('');
   const [newItemName, setNewItemName] = useState('');
@@ -119,12 +122,12 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    if (currentUser?.name?.toLowerCase() !== 'manusha') {
+    if (currentUser?.role !== 'admin') {
       router.push('/');
     }
-  }, [currentUser?.name, router]);
+  }, [currentUser?.role, router]);
 
-  if (currentUser?.name?.toLowerCase() !== 'manusha') {
+  if (currentUser?.role !== 'admin') {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4 animate-in fade-in duration-500 pb-10 pt-20">
         <h1 className="text-3xl font-extrabold tracking-tight text-white">Access Denied</h1>
@@ -152,6 +155,7 @@ export default function SettingsPage() {
 
       {/* Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#2a2d36]">
+        <button onClick={() => setActiveTab('roomConfig')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'roomConfig' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-indigo-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Room Config</button>
         <button onClick={() => setActiveTab('profiles')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'profiles' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>User Profiles</button>
         <button onClick={() => setActiveTab('roster')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'roster' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Roster Config</button>
         <button onClick={() => setActiveTab('inventory')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'inventory' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Inventory Config</button>
@@ -162,6 +166,46 @@ export default function SettingsPage() {
 
       <div className="w-full">
         
+        {/* ROOM CONFIG TAB */}
+        {activeTab === 'roomConfig' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, scale: 0.95 }} 
+            animate={{ opacity: 1, y: 0, scale: 1 }} 
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-b-[32px] rounded-tr-[32px] p-6 md:p-8 flex flex-col gap-8 relative overflow-hidden w-full min-h-[40vh] md:min-h-0"
+          >
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
+            <div className="relative z-10 flex flex-col gap-2">
+              <h3 className="font-extrabold text-xl tracking-tight text-white">Room Configuration</h3>
+              <p className="text-sm text-gray-400">Update your room's branding and basic details.</p>
+            </div>
+
+            {currentRoom ? (
+              <div className="relative z-10 flex flex-col gap-8 max-w-2xl bg-black/20 p-6 rounded-3xl border border-[#2a2d36]">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Room Name</label>
+                  <input 
+                    type="text" 
+                    value={currentRoom.name}
+                    onChange={e => updateRoom(currentRoom.id, { name: e.target.value })}
+                    className="w-full bg-[#1A1D20] border border-[#2a2d36] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-indigo-500/50"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Room Logo</label>
+                  <RoomLogoCropper 
+                    currentLogoUrl={currentRoom.logoUrl} 
+                    onUploadSuccess={(base64) => updateRoom(currentRoom.id, { logoUrl: base64 })} 
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">You are not assigned to any room.</p>
+            )}
+          </motion.div>
+        )}
+
         {/* PROFILES TAB */}
         {/* PROFILES TAB */}
         {activeTab === 'profiles' && (

@@ -7,13 +7,34 @@ export type User = {
   name: string;
   avatar: string;
   isActive: boolean;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'super_admin';
+  status?: 'active' | 'suspended' | 'pending_approval';
   username?: string;
   password?: string;
   birthday?: string;
   email?: string;
   phone?: string;
+  joinedAt?: string;
+  roomId?: string | null;
   dashboardLayout?: string[];
+};
+
+export type Room = {
+  id: string;
+  name: string;
+  inviteCode: string;
+  university?: string;
+  faculty?: string;
+  logoUrl?: string;
+};
+
+export type AuditLog = {
+  id: string;
+  actorId: string;
+  action: string;
+  targetId?: string;
+  timestamp: string;
+  details?: string;
 };
 
 export type TaskType = 'sweep' | 'mop' | 'toilet';
@@ -149,6 +170,11 @@ interface AppState {
   updateUserAvatar: (userId: string, avatar: string) => void;
   updateUserDashboardLayout: (userId: string, layout: string[]) => void;
   
+  rooms: Room[];
+  addRoom: (room: Omit<Room, 'id'>) => void;
+  updateRoom: (id: string, room: Partial<Room>) => void;
+  removeRoom: (id: string) => void;
+  
   isAdminAuthenticated: boolean;
   authenticateAdmin: (username: string, password: string) => boolean;
   logoutAdmin: () => void;
@@ -158,6 +184,12 @@ interface AppState {
   
   currentUserId: string;
   setCurrentUserId: (id: string) => void;
+  
+  impersonatedUserId: string | null;
+  setImpersonatedUserId: (id: string | null) => void;
+  
+  auditLogs: AuditLog[];
+  addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => void;
   
   // Roster State
   rosterConfig: RosterConfig;
@@ -216,12 +248,13 @@ interface AppState {
 }
 
 const defaultUsers: User[] = [
-  { id: '1', name: 'Manusha', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Manusha', isActive: true, role: 'admin', username: 'Manusha', password: 'abc123', birthday: '2004-12-01', email: 'manusha@example.com', phone: '0712345678', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
-  { id: '2', name: 'Kasun', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kasun', isActive: true, role: 'member', username: 'kasun', password: 'abc123', birthday: '2000-01-01', email: 'kasun@example.com', phone: '0711111111', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
-  { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true, role: 'member', username: 'champika', password: 'abc123', birthday: '2001-02-02', email: 'champika@example.com', phone: '0722222222', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
-  { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true, role: 'member', username: 'janidu', password: 'abc123', birthday: '2002-03-03', email: 'janidu@example.com', phone: '0733333333', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
-  { id: '5', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true, role: 'member', username: 'binoj', password: 'abc123', birthday: '2003-04-04', email: 'binoj@example.com', phone: '0744444444', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
-  { id: '6', name: 'Kaveeth', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kaveeth', isActive: true, role: 'member', username: 'kaveeth', password: 'abc123', birthday: '2005-05-05', email: 'kaveeth@example.com', phone: '0755555555', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '1', name: 'Manusha', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Manusha', isActive: true, role: 'admin', status: 'active', username: 'Manusha', password: 'abc123', roomId: 'room_1', birthday: '2004-12-01', email: 'manusha@example.com', phone: '0712345678', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '2', name: 'Kasun', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kasun', isActive: true, role: 'member', status: 'active', username: 'kasun', password: 'abc123', roomId: 'room_1', birthday: '2000-01-01', email: 'kasun@example.com', phone: '0711111111', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '3', name: 'Champika', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Champika', isActive: true, role: 'member', status: 'active', username: 'champika', password: 'abc123', roomId: 'room_1', birthday: '2001-02-02', email: 'champika@example.com', phone: '0722222222', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '4', name: 'Janidu', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Janidu', isActive: true, role: 'member', status: 'active', username: 'janidu', password: 'abc123', roomId: 'room_1', birthday: '2002-03-03', email: 'janidu@example.com', phone: '0733333333', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '5', name: 'Binoj', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Binoj', isActive: true, role: 'member', status: 'active', username: 'binoj', password: 'abc123', roomId: 'room_1', birthday: '2003-04-04', email: 'binoj@example.com', phone: '0744444444', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '6', name: 'Kaveeth', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Kaveeth', isActive: true, role: 'member', status: 'active', username: 'kaveeth', password: 'abc123', roomId: 'room_1', birthday: '2005-05-05', email: 'kaveeth@example.com', phone: '0755555555', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
+  { id: '7', name: 'SuperAdmin', avatar: 'https://api.dicebear.com/8.x/notionists/svg?seed=Super', isActive: true, role: 'super_admin', status: 'active', username: 'superadmin', password: 'superpassword', roomId: null, email: 'super@admin.com', dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'] },
 ];
 
 const defaultRosterConfig: RosterConfig = {
@@ -388,7 +421,17 @@ export const useAppStore = create<AppState>()(
           timetableConfig: { validFrom: format(new Date(), 'yyyy-MM-dd'), validTo: format(addWeeks(new Date(), 16), 'yyyy-MM-dd'), mandatoryBaseCourses: [] },
           attendances: [],
           enrollments: {},
-          enrolledSessions: {}
+          enrolledSessions: {},
+          auditLogs: [],
+          impersonatedUserId: null,
+          rooms: [{ 
+            id: 'room_1', 
+            name: 'PCG Original', 
+            inviteCode: 'PCG2026',
+            university: 'Wayamba University of Sri Lanka',
+            faculty: 'Technology',
+            logoUrl: '/pcglogo.png' 
+          }]
         };
       }),
 
@@ -436,6 +479,35 @@ export const useAppStore = create<AppState>()(
       
       currentUserId: '',
       setCurrentUserId: (id) => set({ currentUserId: id }),
+      
+      impersonatedUserId: null,
+      setImpersonatedUserId: (id) => set({ impersonatedUserId: id }),
+      
+      auditLogs: [],
+      addAuditLog: (log) => set(state => ({
+        auditLogs: [{ id: Date.now().toString(), timestamp: new Date().toISOString(), ...log }, ...state.auditLogs]
+      })),
+      
+      rooms: [{ 
+        id: 'room_1', 
+        name: 'PCG Original', 
+        inviteCode: 'PCG2026',
+        university: 'Wayamba University of Sri Lanka',
+        faculty: 'Technology',
+        logoUrl: '/pcglogo.png'
+      }],
+      addRoom: (room) => set(state => {
+        state.pushUndoState();
+        return { rooms: [...state.rooms, { ...room, id: Date.now().toString() }] };
+      }),
+      updateRoom: (id, room) => set(state => {
+        state.pushUndoState();
+        return { rooms: state.rooms.map(r => r.id === id ? { ...r, ...room } : r) };
+      }),
+      removeRoom: (id) => set(state => {
+        state.pushUndoState();
+        return { rooms: state.rooms.filter(r => r.id !== id) };
+      }),
 
       rosterConfig: defaultRosterConfig,
       updateRosterConfig: (config) => set(state => {
@@ -793,14 +865,13 @@ export const useAppStore = create<AppState>()(
       version: 1,
       storage: createJSONStorage(() => cloudStorage),
       partialize: (state) => {
-        const { currentUserId, isAdminAuthenticated, ...rest } = state;
+        const { isAdminAuthenticated, ...rest } = state;
         return rest;
       },
       merge: (persistedState: any, currentState: AppState) => {
         return {
           ...currentState,
           ...persistedState,
-          currentUserId: '',
           isAdminAuthenticated: false
         };
       },

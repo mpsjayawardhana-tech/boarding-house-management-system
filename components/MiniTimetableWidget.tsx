@@ -33,6 +33,35 @@ export function MiniTimetableWidget({ isEditMode }: { isEditMode?: boolean }) {
   // Default to today if it's a weekday, otherwise Monday
   const initialDay = DAYS.includes(currentDayName) ? currentDayName : 'Monday';
   const [selectedDay, setSelectedDay] = useState(initialDay);
+  
+  // Track swipe direction for animation (1 for next, -1 for prev)
+  const [direction, setDirection] = useState(1);
+  
+  const handleDaySelect = (day: string) => {
+    const currentIndex = DAYS.indexOf(selectedDay);
+    const newIndex = DAYS.indexOf(day);
+    setDirection(newIndex > currentIndex ? 1 : -1);
+    setSelectedDay(day);
+  };
+
+  const handleDragEnd = (event: any, info: any) => {
+    const swipeThreshold = 50;
+    if (info.offset.x < -swipeThreshold) {
+      // Swiped left -> next day
+      const currentIndex = DAYS.indexOf(selectedDay);
+      if (currentIndex < DAYS.length - 1) {
+        setDirection(1);
+        setSelectedDay(DAYS[currentIndex + 1]);
+      }
+    } else if (info.offset.x > swipeThreshold) {
+      // Swiped right -> previous day
+      const currentIndex = DAYS.indexOf(selectedDay);
+      if (currentIndex > 0) {
+        setDirection(-1);
+        setSelectedDay(DAYS[currentIndex - 1]);
+      }
+    }
+  };
 
   const todaysSessions = useMemo(() => {
     const sessions: any[] = [];
@@ -72,7 +101,7 @@ export function MiniTimetableWidget({ isEditMode }: { isEditMode?: boolean }) {
           {DAYS.map(day => (
             <button
               key={day}
-              onClick={() => setSelectedDay(day)}
+              onClick={() => handleDaySelect(day)}
               className={`px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-widest font-bold shrink-0 transition-all ${
                 selectedDay === day 
                   ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' 
@@ -89,11 +118,15 @@ export function MiniTimetableWidget({ isEditMode }: { isEditMode?: boolean }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={selectedDay}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, x: direction * 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -direction * 50 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col gap-3"
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={handleDragEnd}
+            className="flex flex-col gap-3 w-full h-full cursor-grab active:cursor-grabbing"
           >
             {todaysSessions.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-[#2a2d36] rounded-2xl bg-black/20 text-center">

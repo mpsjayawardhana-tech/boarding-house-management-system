@@ -4,20 +4,17 @@ import { TopNav } from "@/components/TopNav";
 import { UndoToast } from "@/components/UndoToast";
 import { GlobalAuthGuard } from "@/components/GlobalAuthGuard";
 import { ScrollReset } from "@/components/ScrollReset";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 export const metadata: Metadata = {
-  title: "PCG",
-  description: "Smart duty roster, inventory, and finance tracker for MS of PCG.",
-  applicationName: "PCG",
+  title: "Bodima",
+  description: "Smart duty roster, inventory, and finance tracker for modern roommates.",
+  applicationName: "Bodima",
   manifest: "/manifest.json?v=2",
   appleWebApp: {
     capable: true,
-    title: "PCG",
+    title: "Bodima",
     statusBarStyle: "black-translucent",
-  },
-  icons: {
-    icon: "/icon?v=2",
-    apple: "/apple-icon?v=2",
   },
 };
 
@@ -38,6 +35,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="font-sans flex flex-col h-screen overflow-hidden bg-[#0C0D0E] relative text-white/90">
         <GlobalAuthGuard>
+          <ImpersonationBanner />
           <ScrollReset />
           <TopNav />
           <main id="main-scroll-container" className="flex-1 overflow-y-auto p-4 md:p-8">

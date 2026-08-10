@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Star, AlertCircle, Brush, Droplets, Bath, GripVertical, Settings2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Star, AlertCircle, Brush, Droplets, Bath, GripVertical, Settings2, Check, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAppStore } from "@/store";
@@ -24,11 +24,15 @@ export default function Dashboard() {
     currentUserId, 
     rosterConfig = { activeDays: [], tasks: [] }, 
     upcomingSwaps = [],
-    updateUserDashboardLayout
+    updateUserDashboardLayout,
+    updateUser,
+    removeUser
   } = useAppStore();
   
   const currentUser = users.find(u => u.id === currentUserId) || users[0];
   const [isEditMode, setIsEditMode] = useState(false);
+  
+  const pendingRequests = users.filter(u => u.roomId === currentUser?.roomId && u.status === 'pending_approval');
 
   const weeklySchedule = useMemo(() => {
     return generateDeterministicSchedule(new Date(), users, rosterConfig, completedTasksHistory, upcomingSwaps);
@@ -344,6 +348,31 @@ export default function Dashboard() {
           {isEditMode ? 'Save Layout' : 'Edit Layout'}
         </button>
       </div>
+
+      {currentUser.role === 'admin' && pendingRequests.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
+          <h2 className="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" /> Pending Join Requests ({pendingRequests.length})
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {pendingRequests.map(reqUser => (
+              <div key={reqUser.id} className="bg-black/40 border border-[#2a2d36] p-4 rounded-2xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Image src={reqUser.avatar} alt={reqUser.name} width={40} height={40} className="rounded-full bg-[#23252b]" />
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm text-white">{reqUser.name}</span>
+                    <span className="text-[10px] text-gray-500 font-mono">@{reqUser.username}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => updateUser(reqUser.id, { status: 'active' })} className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-colors"><Check className="w-4 h-4" /></button>
+                  <button onClick={() => removeUser(reqUser.id)} className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <Reorder.Group 
         axis="y" 
