@@ -139,7 +139,7 @@ export function SaaSAuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
             <motion.div key="login" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="p-8 flex flex-col gap-6">
               <div>
                 <h2 className="text-2xl font-extrabold text-white">Welcome back</h2>
-                <p className="text-sm text-gray-400">Sign in to your PCG account</p>
+                <p className="text-sm text-gray-400">Sign in to your Bodima account</p>
               </div>
 
               {successMsg && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-xl font-medium">{successMsg}</div>}

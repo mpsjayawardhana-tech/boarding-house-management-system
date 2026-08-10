@@ -426,11 +426,11 @@ export const useAppStore = create<AppState>()(
           impersonatedUserId: null,
           rooms: [{ 
             id: 'room_1', 
-            name: 'PCG Original', 
-            inviteCode: 'PCG2026',
+            name: 'Bodima Original', 
+            inviteCode: 'BODIMA2026',
             university: 'Wayamba University of Sri Lanka',
             faculty: 'Technology',
-            logoUrl: '/pcglogo.png' 
+            logoUrl: '/bodimalogo.png' 
           }]
         };
       }),
@@ -490,11 +490,11 @@ export const useAppStore = create<AppState>()(
       
       rooms: [{ 
         id: 'room_1', 
-        name: 'PCG Original', 
-        inviteCode: 'PCG2026',
+        name: 'Bodima Original', 
+        inviteCode: 'BODIMA2026',
         university: 'Wayamba University of Sri Lanka',
         faculty: 'Technology',
-        logoUrl: '/pcglogo.png'
+        logoUrl: '/bodimalogo.png'
       }],
       addRoom: (room) => set(state => {
         state.pushUndoState();
