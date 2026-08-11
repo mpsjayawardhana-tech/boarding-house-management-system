@@ -10,11 +10,15 @@ export const metadata: Metadata = {
   title: "Bodima",
   description: "Smart duty roster, inventory, and finance tracker for modern roommates.",
   applicationName: "Bodima",
-  manifest: "/manifest.json?v=2",
+  manifest: "/manifest.json?v=3",
   appleWebApp: {
     capable: true,
     title: "Bodima",
     statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: "/icon.png?v=3",
+    apple: "/apple-touch-icon.png?v=3",
   },
 };
 
