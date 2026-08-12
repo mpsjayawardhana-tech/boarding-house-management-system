@@ -12,14 +12,14 @@ import { IconMapper } from "@/components/IconMapper";
 import { useCountUp } from "@/hooks/useCountUp";
 import { motion, Reorder } from "framer-motion";
 import { MiniTimetableWidget } from "@/components/MiniTimetableWidget";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 
-const ActivityHeatmap = dynamic(() => import("@/components/ActivityHeatmap").then(mod => mod.ActivityHeatmap), { 
+const ActivityHeatmap = nextDynamic(() => import("@/components/ActivityHeatmap").then(mod => mod.ActivityHeatmap), { 
   ssr: false, 
   loading: () => <div className="animate-pulse h-48 bg-white/5 rounded-2xl"></div> 
 });
 
-const PerformanceGraph = dynamic(() => import("@/components/PerformanceGraph").then(mod => mod.PerformanceGraph), { 
+const PerformanceGraph = nextDynamic(() => import("@/components/PerformanceGraph").then(mod => mod.PerformanceGraph), { 
   ssr: false, 
   loading: () => <div className="animate-pulse h-64 bg-white/5 rounded-2xl"></div> 
 });

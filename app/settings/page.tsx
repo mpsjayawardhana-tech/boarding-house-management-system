@@ -9,11 +9,11 @@ import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
 import { IconMapper } from "@/components/IconMapper";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 
-const ConfirmModal = dynamic(() => import("@/components/ConfirmModal").then(mod => mod.ConfirmModal), { ssr: false });
-const UserProfileModal = dynamic(() => import("@/components/UserProfileModal").then(mod => mod.UserProfileModal), { ssr: false });
-const RoomLogoCropper = dynamic(() => import("@/components/RoomLogoCropper").then(mod => mod.RoomLogoCropper), { ssr: false });
+const ConfirmModal = nextDynamic(() => import("@/components/ConfirmModal").then(mod => mod.ConfirmModal), { ssr: false });
+const UserProfileModal = nextDynamic(() => import("@/components/UserProfileModal").then(mod => mod.UserProfileModal), { ssr: false });
+const RoomLogoCropper = nextDynamic(() => import("@/components/RoomLogoCropper").then(mod => mod.RoomLogoCropper), { ssr: false });
 
 export const dynamic = 'force-dynamic';
 
