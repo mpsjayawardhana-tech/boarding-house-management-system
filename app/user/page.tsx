@@ -8,15 +8,14 @@ import { motion } from "framer-motion";
 export const dynamic = 'force-dynamic';
 
 export default function UserProfilePage() {
-  const { users, currentUserId, setCurrentUserId, setProfileModalOpen } = useAppStore();
+  const { users, currentUserId, logout, setProfileModalOpen } = useAppStore();
   const router = useRouter();
   const currentUser = users.find(u => u.id === currentUserId);
 
   if (!currentUser) return null;
 
   const handleLogout = () => {
-    setCurrentUserId('');
-    router.push('/');
+    logout();
   };
 
   return (

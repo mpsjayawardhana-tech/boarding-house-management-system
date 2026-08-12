@@ -55,7 +55,8 @@ export function TopNav() {
     completedTasksHistory = [], 
     upcomingSwaps = [],
     setProfileModalOpen,
-    rooms = []
+    rooms = [],
+    logout
   } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId);
   const currentRoom = rooms.find(r => r.id === currentUser?.roomId) || rooms[0];
@@ -276,8 +277,8 @@ export function TopNav() {
                     </button>
                     <button 
                       onClick={() => {
-                        setCurrentUserId('');
                         setShowProfileDropdown(false);
+                        logout();
                       }}
                       className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-500 font-semibold py-2 rounded-xl transition-colors border border-red-500/20"
                     >

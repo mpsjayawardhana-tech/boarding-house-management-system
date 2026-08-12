@@ -183,6 +183,7 @@ interface AppState {
   setProfileModalOpen: (isOpen: boolean) => void;
   currentUserId: string;
   setCurrentUserId: (id: string) => void;
+  logout: () => void;
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
   
@@ -480,6 +481,13 @@ export const useAppStore = create<AppState>()(
       
       currentUserId: '',
       setCurrentUserId: (id) => set({ currentUserId: id }),
+      logout: () => {
+        set({ currentUserId: '' });
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('ms-of-pcg-storage');
+          window.location.href = '/';
+        }
+      },
       
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
