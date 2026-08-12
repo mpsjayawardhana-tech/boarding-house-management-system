@@ -11,6 +11,8 @@ import {
 import Image from "next/image";
 import { format } from "date-fns";
 
+export const dynamic = 'force-dynamic';
+
 export default function SuperAdminDashboard() {
   const { 
     users, currentUserId, setCurrentUserId,

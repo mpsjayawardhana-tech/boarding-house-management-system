@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
+export const dynamic = 'force-dynamic';
+
 export default function UserProfilePage() {
   const { users, currentUserId, setCurrentUserId, setProfileModalOpen } = useAppStore();
   const router = useRouter();

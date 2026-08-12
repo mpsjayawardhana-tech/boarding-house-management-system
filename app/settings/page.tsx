@@ -15,6 +15,8 @@ const ConfirmModal = dynamic(() => import("@/components/ConfirmModal").then(mod 
 const UserProfileModal = dynamic(() => import("@/components/UserProfileModal").then(mod => mod.UserProfileModal), { ssr: false });
 const RoomLogoCropper = dynamic(() => import("@/components/RoomLogoCropper").then(mod => mod.RoomLogoCropper), { ssr: false });
 
+export const dynamic = 'force-dynamic';
+
 export default function SettingsPage() {
   const { 
     users, currentUserId, isAdminAuthenticated, logoutAdmin, updateUserAvatar, addUser, removeUser, updateUser,

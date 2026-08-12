@@ -9,6 +9,8 @@ import { IconMapper } from "@/components/IconMapper";
 import { parseSmartAmount } from "@/utils/parseAmount";
 import { motion } from "framer-motion";
 
+export const dynamic = 'force-dynamic';
+
 export default function InventoryPage() {
   const { users, inventoryItems, inventoryLogs, inventoryCycles, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, currentUserId } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId);

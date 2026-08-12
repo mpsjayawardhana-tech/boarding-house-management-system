@@ -7,6 +7,8 @@ import { BookOpen, Check, CheckCircle2, ChevronRight, Clock, Crown, GraduationCa
 import { useMemo, useState } from "react";
 import Image from "next/image";
 
+export const dynamic = 'force-dynamic';
+
 export default function AcademicsPage() {
   const { 
     users, currentUserId = '1', 

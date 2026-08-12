@@ -10,6 +10,8 @@ import { motion } from "framer-motion";
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+export const dynamic = 'force-dynamic';
+
 export default function FinancePage() {
   const { users, p2pDebts, payments, boardingFees, addP2PDebt, updateP2PDebt, deleteP2PDebt, addPayment, toggleBoardingFee, currentUserId = '1' } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId);

@@ -7,6 +7,8 @@ import { useState, useMemo } from "react";
 import { generateDeterministicSchedule, calculateHistoricalBalances } from "@/utils/rosterAlgorithm";
 import { motion } from "framer-motion";
 
+export const dynamic = 'force-dynamic';
+
 export default function RosterPage() {
   const { users, rosterConfig, completedTasksHistory, upcomingSwaps, completeTask, undoTaskCompletion } = useAppStore();
   const [selectedTask, setSelectedTask] = useState<any | null>(null);

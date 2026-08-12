@@ -24,6 +24,8 @@ const PerformanceGraph = dynamic(() => import("@/components/PerformanceGraph").t
   loading: () => <div className="animate-pulse h-64 bg-white/5 rounded-2xl"></div> 
 });
 
+export const dynamic = 'force-dynamic';
+
 export default function Dashboard() {
   const { 
     users = [], 
