@@ -27,6 +27,7 @@ export default function SettingsPage() {
   
   const router = useRouter();
   const currentUser = users.find(u => u.id === currentUserId);
+  if (!currentUser) return null;
   const currentRoom = rooms.find(r => r.id === currentUser?.roomId);
 
   const [activeTab, setActiveTab] = useState<'roomConfig' | 'profiles' | 'roster' | 'inventory' | 'fees' | 'timetable' | 'danger'>('roomConfig');

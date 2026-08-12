@@ -10,6 +10,7 @@ import { generateDeterministicSchedule } from '@/utils/rosterAlgorithm';
 export function PerformanceGraph() {
   const { currentUserId, completedTasksHistory = [], rosterConfig = { activeDays: [], tasks: [] }, users = [], upcomingSwaps = [] } = useAppStore();
   const currentUser = users.find(u => u.id === currentUserId);
+  if (!currentUser) return null;
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {

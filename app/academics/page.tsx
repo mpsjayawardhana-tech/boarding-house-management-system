@@ -16,6 +16,7 @@ export default function AcademicsPage() {
   } = useAppStore();
 
   const currentUser = users.find(u => u.id === currentUserId);
+  if (!currentUser) return null;
   const todayDateStr = format(new Date(), 'yyyy-MM-dd');
   
   // Find current day name (e.g., 'Monday')
