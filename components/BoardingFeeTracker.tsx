@@ -7,7 +7,7 @@ import { useEffect, useRef } from "react";
 
 export function BoardingFeeTracker({ isReadOnly = false }: { isReadOnly?: boolean }) {
   const { users = [], boardingFees = {}, toggleBoardingFee, currentUserId } = useAppStore();
-  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUser = users.find(u => u.id === currentUserId);
   const currentUserRole = currentUser?.role;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const currentMonth = new Date().getMonth();

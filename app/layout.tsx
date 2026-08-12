@@ -4,6 +4,7 @@ import { TopNav } from "@/components/TopNav";
 import dynamic from "next/dynamic";
 import { GlobalAuthGuard } from "@/components/GlobalAuthGuard";
 import { ScrollReset } from "@/components/ScrollReset";
+import { HydrationGuard } from "@/components/HydrationGuard";
 
 const UndoToast = dynamic(() => import("@/components/UndoToast").then(mod => mod.UndoToast), { ssr: false });
 const ImpersonationBanner = dynamic(() => import("@/components/ImpersonationBanner").then(mod => mod.ImpersonationBanner), { ssr: false });
@@ -40,17 +41,19 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="font-sans flex flex-col h-screen overflow-hidden bg-[#0C0D0E] relative text-white/90">
-        <GlobalAuthGuard>
-          <ImpersonationBanner />
-          <ScrollReset />
-          <TopNav />
-          <main id="main-scroll-container" className="flex-1 overflow-y-auto p-4 md:p-8">
-            <div className="max-w-7xl mx-auto w-full">
+        <HydrationGuard>
+          <GlobalAuthGuard>
+            <ImpersonationBanner />
+            <ScrollReset />
+            <TopNav />
+            
+            <main id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-hide">
               {children}
-            </div>
-          </main>
-          <UndoToast />
-        </GlobalAuthGuard>
+            </main>
+            
+            <UndoToast />
+          </GlobalAuthGuard>
+        </HydrationGuard>
       </body>
     </html>
   );

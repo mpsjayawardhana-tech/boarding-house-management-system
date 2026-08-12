@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 
 export default function InventoryPage() {
   const { users, inventoryItems, inventoryLogs, inventoryCycles, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, currentUserId } = useAppStore();
-  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUser = users.find(u => u.id === currentUserId);
   const currentUserRole = currentUser.role;
   
   const [isAdding, setIsAdding] = useState(false);

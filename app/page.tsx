@@ -38,7 +38,7 @@ export default function Dashboard() {
     removeUser
   } = useAppStore();
   
-  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUser = users.find(u => u.id === currentUserId);
   const [isEditMode, setIsEditMode] = useState(false);
   
   const pendingRequests = users.filter(u => u.roomId === currentUser?.roomId && u.status === 'pending_approval');

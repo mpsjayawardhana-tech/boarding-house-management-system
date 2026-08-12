@@ -15,7 +15,7 @@ export default function AcademicsPage() {
     enrollments, toggleCourseEnrollment, setEnrollments
   } = useAppStore();
 
-  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUser = users.find(u => u.id === currentUserId);
   const todayDateStr = format(new Date(), 'yyyy-MM-dd');
   
   // Find current day name (e.g., 'Monday')

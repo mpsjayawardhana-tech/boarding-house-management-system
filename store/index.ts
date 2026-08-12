@@ -181,9 +181,10 @@ interface AppState {
   
   isProfileModalOpen: boolean;
   setProfileModalOpen: (isOpen: boolean) => void;
-  
   currentUserId: string;
   setCurrentUserId: (id: string) => void;
+  _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   
   impersonatedUserId: string | null;
   setImpersonatedUserId: (id: string | null) => void;
@@ -479,6 +480,9 @@ export const useAppStore = create<AppState>()(
       
       currentUserId: '',
       setCurrentUserId: (id) => set({ currentUserId: id }),
+      
+      _hasHydrated: false,
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       
       impersonatedUserId: null,
       setImpersonatedUserId: (id) => set({ impersonatedUserId: id }),
@@ -874,6 +878,11 @@ export const useAppStore = create<AppState>()(
           ...persistedState,
           isAdminAuthenticated: false
         };
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHasHydrated(true);
+        }
       },
     }
   )

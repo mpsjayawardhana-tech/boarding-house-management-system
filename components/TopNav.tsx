@@ -57,7 +57,7 @@ export function TopNav() {
     setProfileModalOpen,
     rooms = []
   } = useAppStore();
-  const currentUser = users.find(u => u.id === currentUserId) || users[0];
+  const currentUser = users.find(u => u.id === currentUserId);
   const currentRoom = rooms.find(r => r.id === currentUser?.roomId) || rooms[0];
   
   const [showNotifications, setShowNotifications] = useState(false);
