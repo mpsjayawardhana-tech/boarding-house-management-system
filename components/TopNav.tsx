@@ -1,7 +1,8 @@
 "use client";
 
 import { Bell, Menu, X, Check, Search, Calendar, Brush, Droplets, Bath, PartyPopper } from "lucide-react";
-import { PersonalProfileModal } from "./PersonalProfileModal";
+import dynamic from "next/dynamic";
+const PersonalProfileModal = dynamic(() => import("./PersonalProfileModal").then(mod => mod.PersonalProfileModal), { ssr: false });
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

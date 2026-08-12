@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { TopNav } from "@/components/TopNav";
-import { UndoToast } from "@/components/UndoToast";
+import dynamic from "next/dynamic";
 import { GlobalAuthGuard } from "@/components/GlobalAuthGuard";
 import { ScrollReset } from "@/components/ScrollReset";
-import { ImpersonationBanner } from "@/components/ImpersonationBanner";
+
+const UndoToast = dynamic(() => import("@/components/UndoToast").then(mod => mod.UndoToast), { ssr: false });
+const ImpersonationBanner = dynamic(() => import("@/components/ImpersonationBanner").then(mod => mod.ImpersonationBanner), { ssr: false });
 
 export const metadata: Metadata = {
   title: "Bodima",

@@ -6,12 +6,14 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
-import { ConfirmModal } from "@/components/ConfirmModal";
 import { IconMapper } from "@/components/IconMapper";
-import { UserProfileModal } from "@/components/UserProfileModal";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { RoomLogoCropper } from "@/components/RoomLogoCropper";
+import dynamic from "next/dynamic";
+
+const ConfirmModal = dynamic(() => import("@/components/ConfirmModal").then(mod => mod.ConfirmModal), { ssr: false });
+const UserProfileModal = dynamic(() => import("@/components/UserProfileModal").then(mod => mod.UserProfileModal), { ssr: false });
+const RoomLogoCropper = dynamic(() => import("@/components/RoomLogoCropper").then(mod => mod.RoomLogoCropper), { ssr: false });
 
 export default function SettingsPage() {
   const { 

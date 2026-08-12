@@ -6,8 +6,10 @@ import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { User } from "lucide-react";
-import { SaaSAuthModal } from "./SaaSAuthModal";
-import { PersonalProfileModal } from "./PersonalProfileModal";
+import dynamic from "next/dynamic";
+
+const SaaSAuthModal = dynamic(() => import("./SaaSAuthModal").then(mod => mod.SaaSAuthModal), { ssr: false });
+const PersonalProfileModal = dynamic(() => import("./PersonalProfileModal").then(mod => mod.PersonalProfileModal), { ssr: false });
 
 export function GlobalAuthGuard({ children }: { children: React.ReactNode }) {
   const { currentUserId } = useAppStore();

@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
-export default function UserProfileMobile() {
+export default function UserProfilePage() {
   const { users, currentUserId, setCurrentUserId, setProfileModalOpen } = useAppStore();
   const router = useRouter();
   const currentUser = users.find(u => u.id === currentUserId);
@@ -21,7 +21,7 @@ export default function UserProfileMobile() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center pt-8 pb-24 px-6 md:hidden"
+      className="flex flex-col items-center justify-center min-h-[80vh] pt-8 pb-24 px-6"
     >
       <div className="w-full max-w-sm bg-[#141618] border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center">
         
