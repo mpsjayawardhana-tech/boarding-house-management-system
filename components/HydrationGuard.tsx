@@ -14,9 +14,16 @@ export function HydrationGuard({ children }: { children: React.ReactNode }) {
 
   if (!isMounted || !_hasHydrated) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-[#090A0C]">
-        <div className="animate-pulse">
-          <Image src="/bodimalogoappicon.png" alt="Loading..." width={80} height={80} className="opacity-50 grayscale" />
+      <div className="fixed inset-0 w-full h-full flex flex-col items-center justify-center bg-black z-[9999]">
+        <div className="animate-slow-pulse">
+          <Image 
+            src="/bodimalogo.png" 
+            alt="Loading..." 
+            width={140} 
+            height={50} 
+            className="invert object-contain opacity-90"
+            priority 
+          />
         </div>
       </div>
     );
