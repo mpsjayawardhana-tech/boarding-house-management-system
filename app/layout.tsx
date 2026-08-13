@@ -47,7 +47,7 @@ export default function RootLayout({
             <ScrollReset />
             <TopNav />
             
-            <main id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-hide">
+            <main id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-hide px-4 md:px-8 w-full">
               {children}
             </main>
             
