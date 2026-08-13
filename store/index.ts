@@ -483,9 +483,9 @@ export const useAppStore = create<AppState>()(
       setCurrentUserId: (id) => set({ currentUserId: id }),
       logout: () => {
         set({ currentUserId: '' });
+        useAppStore.persist.clearStorage();
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('ms-of-pcg-storage');
-          window.location.href = '/';
+          window.location.replace('/');
         }
       },
       
@@ -877,14 +877,15 @@ export const useAppStore = create<AppState>()(
       version: 1,
       storage: createJSONStorage(() => cloudStorage),
       partialize: (state) => {
-        const { isAdminAuthenticated, ...rest } = state;
+        const { isAdminAuthenticated, currentUserId, ...rest } = state;
         return rest;
       },
       merge: (persistedState: any, currentState: AppState) => {
         return {
           ...currentState,
           ...persistedState,
-          isAdminAuthenticated: false
+          isAdminAuthenticated: false,
+          currentUserId: currentState.currentUserId // Prevent cloud state from overwriting local auth
         };
       },
       onRehydrateStorage: () => (state) => {
