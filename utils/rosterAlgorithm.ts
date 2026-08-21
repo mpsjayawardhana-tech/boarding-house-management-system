@@ -26,7 +26,7 @@ export function generateDeterministicSchedule(
   completedTasksHistory: any[],
   upcomingSwaps: UpcomingSwap[]
 ): DaySchedule[] {
-  const activeUsers = users?.filter((u) => u.isActive).sort((a, b) => a.id.localeCompare(b.id)) || [];
+  const activeUsers = users?.filter((u) => u.isActive && u.role !== 'super_admin').sort((a, b) => a.id.localeCompare(b.id)) || [];
   const activeDays = config?.activeDays || [];
   const tasks = config?.tasks?.length ? config.tasks : [
     { id: 'sweep', name: 'Sweep the floor', frequency: 'daily', assigneesPerOccurrence: 2 },
@@ -41,17 +41,48 @@ export function generateDeterministicSchedule(
   const isoWeekNumber = getISOWeek(targetDate);
   const weekStart = startOfWeek(targetDate, { weekStartsOn: 1 }); // Monday is 1
   
+  const dayNameToDateMap: Record<string, string> = {};
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  dayNames.forEach((name, i) => {
+    dayNameToDateMap[name] = format(addDays(weekStart, i), 'yyyy-MM-dd');
+  });
+
+  if (config?.schedulingMode === 'manual') {
+    return activeDays.map(dayName => {
+      const dayTasks: Task[] = [];
+      const dayAssignments = config.manualAssignments?.[dayName] || {};
+      
+      tasks.forEach(t => {
+        const userIds = dayAssignments[t.id] || [];
+        if (userIds.length > 0) {
+          const dateStr = dayNameToDateMap[dayName];
+          const deterministicTaskId = `${t.id}-${dateStr}`;
+          const isCompleted = completedTasksHistory.some((ct: any) => ct.id === deterministicTaskId);
+          
+          dayTasks.push({
+            id: deterministicTaskId,
+            type: t.id,
+            title: t.name,
+            assigneeIds: userIds,
+            isCompleted
+          } as Task);
+        }
+      });
+      
+      return {
+        dayName,
+        tasks: dayTasks
+      };
+    });
+  }
+  
   const scheduleDraft: Record<string, Task[]> = {};
   activeDays.forEach(d => { scheduleDraft[d] = []; });
   
   const assignedUsersPerDay: Record<string, Set<string>> = {};
   activeDays.forEach(d => { assignedUsersPerDay[d] = new Set(); });
 
-  const dayNameToDateMap: Record<string, string> = {};
-  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  dayNames.forEach((name, i) => {
-    dayNameToDateMap[name] = format(addDays(weekStart, i), 'yyyy-MM-dd');
-  });
+
 
   // Start with historical balances, we will mutate this during assignment (Greedy Priority Queue)
   const currentBalances = calculateHistoricalBalances(users, completedTasksHistory);
@@ -116,7 +147,7 @@ export function generateDeterministicSchedule(
     
     const targetDays = t.frequency === 'daily' 
       ? activeDays 
-      : [...activeDays].sort().slice(0, occurrences); // Deterministic distribution
+      : (t.targetDays && t.targetDays.length > 0 ? t.targetDays.filter(d => activeDays.includes(d)) : [...activeDays].sort().slice(0, occurrences)); // Deterministic distribution fallback
 
     targetDays.forEach(dayName => {
       const ids = getDistinctUsers(t.assigneesPerOccurrence, dayName, globalOffset);

@@ -12,6 +12,7 @@ import { IconMapper } from "@/components/IconMapper";
 import { useCountUp } from "@/hooks/useCountUp";
 import { motion, Reorder } from "framer-motion";
 import { MiniTimetableWidget } from "@/components/MiniTimetableWidget";
+import { DashboardNoticeBoard } from "@/components/DashboardNoticeBoard";
 import nextDynamic from "next/dynamic";
 
 const ActivityHeatmap = nextDynamic(() => import("@/components/ActivityHeatmap").then(mod => mod.ActivityHeatmap), { 
@@ -31,6 +32,7 @@ export default function Dashboard() {
     users = [], 
     inventoryItems = [], 
     p2pDebts = [], 
+    payments = [],
     completedTasksHistory = [], 
     currentUserId, 
     rosterConfig = { activeDays: [], tasks: [] }, 
@@ -65,8 +67,30 @@ export default function Dashboard() {
   const todaysTasks = todaysSchedule?.tasks || [];
   const displayDayName = todaysSchedule?.dayName || todayName;
 
-  const userOwesDebts = p2pDebts.filter(d => d.borrowerId === currentUser?.id);
-  const pendingDebtsSum = userOwesDebts.reduce((sum, d) => sum + d.amount, 0);
+  const balances: Record<string, number> = {};
+  if (currentUser) {
+    users.forEach(u => { balances[u.id] = 0; });
+    p2pDebts.forEach(debt => {
+      if (debt.payerId === currentUser.id) balances[debt.borrowerId] = (balances[debt.borrowerId] || 0) + debt.amount;
+      if (debt.borrowerId === currentUser.id) balances[debt.payerId] = (balances[debt.payerId] || 0) - debt.amount;
+    });
+    payments.forEach(payment => {
+      if (payment.payerId === currentUser.id) balances[payment.payeeId] = (balances[payment.payeeId] || 0) + payment.amount;
+      if (payment.payeeId === currentUser.id) balances[payment.payerId] = (balances[payment.payerId] || 0) - payment.amount;
+    });
+  }
+
+  const pendingOwes = Object.keys(balances).filter(id => balances[id] < 0).map(id => {
+    const relatedDebts = p2pDebts.filter(d => d.borrowerId === currentUser?.id && d.payerId === id);
+    const descriptions = Array.from(new Set(relatedDebts.map(d => d.description))).slice(0, 2).join(', ');
+    return {
+      creditorId: id,
+      amount: Math.abs(balances[id]),
+      description: descriptions ? descriptions + (relatedDebts.length > 2 ? '...' : '') : 'Multiple Expenses'
+    };
+  });
+
+  const pendingDebtsSum = pendingOwes.reduce((sum, d) => sum + d.amount, 0);
 
   const inventoryAlerts = inventoryItems.map(item => {
     const cycleInfo = useAppStore.getState().inventoryCycles?.[item.id] || {};
@@ -106,16 +130,16 @@ export default function Dashboard() {
   });
 
   const currentMonth = format(new Date(), 'yyyy-MM');
-  const monthlyStats = users.map(user => {
-    let sweep = 0; let mop = 0; let toilet = 0;
+  const monthlyStats = users.filter(u => u.role !== 'super_admin').map(user => {
+    const taskCounts: Record<string, number> = {};
+    let total = 0;
     completedTasksHistory.forEach(task => {
       if (task.completedAt?.startsWith(currentMonth) && task.actualAssigneeIds?.includes(user.id)) {
-        if (task.type === 'sweep') sweep++;
-        if (task.type === 'mop') mop++;
-        if (task.type === 'toilet') toilet++;
+        taskCounts[task.type] = (taskCounts[task.type] || 0) + 1;
+        total++;
       }
     });
-    return { user, sweep, mop, toilet, total: sweep + mop + toilet };
+    return { user, taskCounts, total };
   }).sort((a, b) => b.total - a.total);
   
   const topPerformerId = monthlyStats[0]?.total > 0 ? monthlyStats[0].user.id : null;
@@ -126,7 +150,13 @@ export default function Dashboard() {
     updateUserDashboardLayout(currentUser.id, newLayout);
   };
 
-  const layout = currentUser.dashboardLayout || ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'];
+  const defaultLayout = ['overview', 'notices', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'];
+  let layout = currentUser.dashboardLayout || defaultLayout;
+  
+  // Ensure notices widget is injected if a user has an older saved layout
+  if (!layout.includes('notices')) {
+    layout = [...layout.slice(0, 1), 'notices', ...layout.slice(1)];
+  }
 
   const getColSpan = (id: string) => {
     if (id === 'overview') return 'lg:col-span-2';
@@ -136,6 +166,8 @@ export default function Dashboard() {
 
   const renderWidget = (id: string) => {
     switch(id) {
+      case 'notices':
+        return <DashboardNoticeBoard isEditMode={isEditMode} />;
       case 'overview':
         return (
           <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-8 md:p-10 shadow-2xl relative overflow-hidden flex flex-col justify-center min-h-[240px] hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 h-full">
@@ -185,10 +217,15 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <h4 className={`font-bold text-sm truncate ${stat.user.id === topPerformerId ? 'text-emerald-400' : 'text-white'}`}>{stat.user.name}</h4>
-                    <div className="flex items-center gap-3 text-[10px] font-bold text-gray-400 mt-0.5">
-                      <span className="flex items-center gap-1"><Brush className="w-3 h-3" /> {stat.sweep}</span>
-                      <span className="flex items-center gap-1"><Droplets className="w-3 h-3" /> {stat.mop}</span>
-                      <span className="flex items-center gap-1"><Bath className="w-3 h-3" /> {stat.toilet}</span>
+                    <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-gray-400 mt-0.5">
+                      {Object.entries(stat.taskCounts).map(([type, count]) => {
+                        const taskConfig = rosterConfig.tasks?.find((t: any) => t.id === type);
+                        return (
+                          <span key={type} className="flex items-center gap-1">
+                            {taskConfig?.emoji || <IconMapper iconStr={type} className="w-3 h-3" />} {count}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -262,21 +299,21 @@ export default function Dashboard() {
               </div>
             )}
             <div className="relative z-10 flex-1 flex flex-col gap-4 overflow-y-auto pr-2">
-              {userOwesDebts.length === 0 ? (
+              {pendingOwes.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center border-2 border-dashed border-[#2a2d36] rounded-2xl bg-black/20 p-6">
                   <p className="text-gray-400 text-sm font-medium text-center">You have no pending debts. Great job!</p>
                 </div>
-              ) : userOwesDebts.map(debt => {
-                  const creditor = users.find(u => u.id === debt.payerId);
+              ) : pendingOwes.map(debt => {
+                  const creditor = users.find(u => u.id === debt.creditorId);
                   return (
-                    <div key={debt.id} className="bg-red-500/5 text-red-400 p-4 rounded-2xl border border-[#ff5a5a]/20 flex flex-col gap-2 relative overflow-hidden group">
+                    <div key={debt.creditorId} className="bg-red-500/5 text-red-400 p-4 rounded-2xl border border-[#ff5a5a]/20 flex flex-col gap-2 relative overflow-hidden group">
                       <div className="absolute top-0 right-0 w-16 h-16 bg-[#ff5a5a]/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
                       <div className="flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 text-red-400" />
                         <h4 className="text-[10px] uppercase tracking-widest font-extrabold text-red-300">You owe {creditor?.name}</h4>
                       </div>
                       <div className="flex items-center justify-between mt-1 z-10">
-                        <span className="text-[10px] uppercase tracking-widest font-bold bg-black/40 px-2 py-1 rounded shadow-sm text-red-300 backdrop-blur-sm">{debt.description}</span>
+                        <span className="text-[10px] uppercase tracking-widest font-bold bg-black/40 px-2 py-1 rounded shadow-sm text-red-300 backdrop-blur-sm truncate max-w-[140px]">{debt.description}</span>
                         <span className="font-mono font-bold text-lg tracking-tight text-red-400">LKR {debt.amount}</span>
                       </div>
                     </div>

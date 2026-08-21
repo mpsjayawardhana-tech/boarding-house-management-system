@@ -2,9 +2,9 @@
 
 import { useAppStore } from "@/store";
 import { format } from "date-fns";
-import { CheckCircle2, Edit2, Plus, Trash2, WalletCards, ArrowRightLeft, Coins } from "lucide-react";
+import { CheckCircle2, Edit2, Plus, Trash2, WalletCards, ArrowRightLeft, Coins, X } from "lucide-react";
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
 import { motion } from "framer-motion";
 
@@ -144,6 +144,17 @@ export default function FinancePage() {
     }
   };
 
+  useEffect(() => {
+    if (isAdding || partialPaymentTargetId) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isAdding, partialPaymentTargetId]);
+
   return (
     <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -152,10 +163,14 @@ export default function FinancePage() {
           <p className="text-gray-400 mt-1">Manage peer-to-peer debts and monthly boarding fees.</p>
         </div>
         <button 
-          onClick={() => { setIsAdding(!isAdding); setEditingId(null); }}
+          onClick={() => { 
+            if (!isAdding) setActiveTab('ledger');
+            setIsAdding(!isAdding); 
+            setEditingId(null); 
+          }}
           className="flex items-center gap-2 bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-400 transition-all hover:-translate-y-0.5"
         >
-          <Plus className="w-4 h-4" />
+          {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
           {isAdding ? 'Cancel' : 'Add Expense'}
         </button>
       </div>
@@ -196,7 +211,7 @@ export default function FinancePage() {
           </div>
           
           <div className="flex flex-col gap-3">
-            {users.filter(u => u.id !== currentUserId && (u.isActive || personalBalances[u.id] !== 0)).map(user => {
+            {users.filter(u => u.role !== 'super_admin' && u.id !== currentUserId && (u.isActive || personalBalances[u.id] !== 0)).map(user => {
               const bal = personalBalances[user.id] || 0;
               return (
                 <div key={user.id} className={`flex flex-col gap-3 p-4 rounded-2xl border ${user.isActive ? 'bg-black/20 border-[#2a2d36]' : 'bg-[#23252b]/50 border-dashed border-[#2a2d36] opacity-70'}`}>
@@ -355,17 +370,17 @@ export default function FinancePage() {
                         className="p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-emerald-400 shadow-sm font-semibold"
                         required
                       >
-                        {users.filter(u => u.isActive).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        {users.filter(u => u.isActive && u.role !== 'super_admin').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-bold text-gray-500 uppercase flex items-center justify-between">
                         Who Owes?
-                        <button type="button" className="text-emerald-400 hover:underline text-[10px]" onClick={() => setFormData({...formData, borrowerIds: users.filter(u => u.isActive).map(u => u.id)})}>Select All</button>
+                        <button type="button" className="text-emerald-400 hover:underline text-[10px]" onClick={() => setFormData({...formData, borrowerIds: users.filter(u => u.isActive && u.role !== 'super_admin').map(u => u.id)})}>Select All</button>
                       </label>
                       <div className="flex flex-col gap-2 max-h-48 overflow-y-auto p-2 border border-[#2a2d36] rounded-xl bg-black/20 shadow-sm">
-                        {users.filter(u => u.isActive).map(u => (
+                        {users.filter(u => u.isActive && u.role !== 'super_admin').map(u => (
                           <div key={u.id} className="flex items-center justify-between p-1 hover:bg-white/5 rounded">
                             <label className="flex items-center gap-2 cursor-pointer text-white flex-1">
                               <input 
@@ -454,6 +469,110 @@ export default function FinancePage() {
         </motion.div>
         )}
       </div>
+
+      {isAdding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-[#141618]/90 backdrop-blur-2xl shadow-2xl rounded-3xl p-6 md:p-8 border border-[#2a2d36] max-w-lg w-full animate-in zoom-in-95 duration-200 relative">
+            <button 
+              onClick={() => setIsAdding(false)} 
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-[#23252b] hover:bg-white/10 text-gray-400 transition-colors"
+            >
+              &times;
+            </button>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+              <h3 className="font-extrabold text-2xl tracking-tight text-white">{editingId ? 'Edit Expense' : 'Log New Expense'}</h3>
+              <p className="text-gray-400 text-sm mb-2">Fill in the details below to log a peer-to-peer expense.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Electricity Bill, Internet"
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none transition-colors"
+                    required
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Total Amount (LKR)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00"
+                    value={formData.amount || ''}
+                    onChange={e => setFormData({...formData, amount: parseInt(e.target.value) || 0})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none transition-colors"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Paid By</label>
+                  <select 
+                    value={formData.payerId}
+                    onChange={e => setFormData({...formData, payerId: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium appearance-none cursor-pointer focus:border-emerald-500/50 focus:outline-none transition-colors"
+                  >
+                    {users.filter(u => u.role !== 'super_admin').map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Date</label>
+                  <input 
+                    type="date" 
+                    value={formData.date}
+                    onChange={e => setFormData({...formData, date: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none transition-colors"
+                    required
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-3 md:col-span-2 mt-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase flex items-center justify-between">
+                    <span>Split Among</span>
+                    <span className="text-[10px] text-gray-400 bg-white/5 px-2 py-0.5 rounded-full">Select multiple</span>
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {users.filter(u => u.role !== 'super_admin').map(u => (
+                      <div key={u.id} className="flex flex-col gap-2">
+                        <label className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors ${formData.borrowerIds.includes(u.id) ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-black/20 border-[#2a2d36] hover:bg-white/5'}`}>
+                          <input 
+                            type="checkbox"
+                            checked={formData.borrowerIds.includes(u.id)}
+                            onChange={(e) => {
+                              const ids = e.target.checked 
+                                ? [...formData.borrowerIds, u.id]
+                                : formData.borrowerIds.filter(id => id !== u.id);
+                              setFormData({...formData, borrowerIds: ids});
+                            }}
+                            className="w-4 h-4 rounded border-gray-600 text-emerald-500 focus:ring-emerald-500/20 bg-black/50"
+                          />
+                          <span className={`text-sm font-bold ${formData.borrowerIds.includes(u.id) ? 'text-emerald-400' : 'text-gray-300'}`}>{u.name}</span>
+                        </label>
+                        {/* Upfront payment field removed */}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-4">
+                <button type="button" onClick={() => setIsAdding(false)} className="px-5 py-2.5 rounded-xl font-bold text-gray-400 hover:text-white hover:bg-[#23252b] transition-colors">
+                  Cancel
+                </button>
+                <button type="submit" className="bg-emerald-500 text-black px-6 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-400 transition-colors">
+                  {editingId ? 'Save Changes' : 'Add Expense'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <BoardingFeeTracker />
 

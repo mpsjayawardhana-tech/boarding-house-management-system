@@ -38,6 +38,9 @@ export default function SettingsPage() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuota, setNewItemQuota] = useState(1000);
   const [newItemUnit, setNewItemUnit] = useState('g');
+  const [newItemIcon, setNewItemIcon] = useState('📦');
+  const [newTaskName, setNewTaskName] = useState('');
+  const [newTaskEmoji, setNewTaskEmoji] = useState('✨');
   const [isCustomUnit, setIsCustomUnit] = useState(false);
 
   const [editingQuotaId, setEditingQuotaId] = useState<string | null>(null);
@@ -144,8 +147,8 @@ export default function SettingsPage() {
   console.log("Current Preset:", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="w-full min-h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white">Admin Settings</h1>
           <p className="text-gray-400 mt-1">Manage global application settings, configurations, and users.</p>
@@ -159,7 +162,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#2a2d36]">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#2a2d36] shrink-0">
         <button onClick={() => setActiveTab('roomConfig')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'roomConfig' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-indigo-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Room Config</button>
         <button onClick={() => setActiveTab('profiles')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'profiles' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>User Profiles</button>
         <button onClick={() => setActiveTab('roster')} className={`px-5 py-2.5 rounded-t-xl font-bold transition-colors ${activeTab === 'roster' ? 'bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl border-x border-t border-[#2a2d36] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.5)] text-emerald-400' : 'text-gray-400 hover:bg-white/5 whitespace-nowrap'}`}>Roster Config</button>
@@ -244,7 +247,7 @@ export default function SettingsPage() {
             </form>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {users.map(user => (
+              {users.filter(u => u.role !== 'super_admin').map(user => (
                 <div 
                   key={user.id} 
                   onClick={() => setActiveUserModal(user.id)}
@@ -300,7 +303,92 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 mt-4">
+              <div className="flex flex-col gap-3 mt-6">
+                <h4 className="font-extrabold text-lg text-white">Scheduling Algorithm</h4>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-colors ${rosterConfig.schedulingMode !== 'manual' ? 'bg-emerald-500/10 border-emerald-500 shadow-sm' : 'bg-[#121415] border-[#2a2d36] hover:border-gray-500'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input 
+                        type="radio" 
+                        checked={rosterConfig.schedulingMode !== 'manual'} 
+                        onChange={() => updateRosterConfig({ schedulingMode: 'deterministic' })}
+                        className="accent-emerald-500 w-4 h-4"
+                      />
+                      <span className="font-bold text-white">Deterministic (Auto)</span>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      <span className="text-emerald-400 font-bold">Pros:</span> Mathematically fair, automatically balances missed tasks (debts) and extra work (surplus). No admin effort needed.<br/>
+                      <span className="text-red-400 font-bold">Cons:</span> You cannot pick specific people for specific days.
+                    </p>
+                  </label>
+
+                  <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-colors ${rosterConfig.schedulingMode === 'manual' ? 'bg-emerald-500/10 border-emerald-500 shadow-sm' : 'bg-[#121415] border-[#2a2d36] hover:border-gray-500'}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <input 
+                        type="radio" 
+                        checked={rosterConfig.schedulingMode === 'manual'} 
+                        onChange={() => updateRosterConfig({ schedulingMode: 'manual' })}
+                        className="accent-emerald-500 w-4 h-4"
+                      />
+                      <span className="font-bold text-white">Custom (Manual)</span>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      <span className="text-emerald-400 font-bold">Pros:</span> Total control. You decide exactly who works on what day.<br/>
+                      <span className="text-red-400 font-bold">Cons:</span> Admin must manually configure it. Doesn't automatically track or balance missed tasks over time.
+                    </p>
+                  </label>
+                </div>
+              </div>
+
+              {rosterConfig.schedulingMode === 'manual' && (
+                <div className="flex flex-col gap-4 mt-6 p-6 rounded-2xl bg-[#121415] border border-[#2a2d36]">
+                  <h4 className="font-extrabold text-lg text-white">Manual Roster Builder</h4>
+                  <p className="text-sm text-gray-400 mb-2">Assign users to specific tasks for each active day. This schedule will repeat every week.</p>
+                  
+                  {rosterConfig.activeDays.map(day => (
+                    <div key={day} className="flex flex-col gap-3 p-4 bg-[#0B0C0E] border border-white/5 rounded-xl">
+                      <h5 className="font-bold text-emerald-400">{day}</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(rosterConfig.tasks || []).map(task => {
+                          const currentAssignees = rosterConfig.manualAssignments?.[day]?.[task.id] || [];
+                          return (
+                            <div key={task.id} className="flex flex-col gap-2">
+                              <label className="text-xs font-bold text-gray-400">{task.name}</label>
+                              <div className="flex flex-wrap gap-2">
+                                {users.filter(u => u.isActive && u.role !== 'super_admin').map(u => {
+                                  const isSelected = currentAssignees.includes(u.id);
+                                  return (
+                                    <button
+                                      key={u.id}
+                                      onClick={() => {
+                                        const assignments = { ...(rosterConfig.manualAssignments || {}) };
+                                        if (!assignments[day]) assignments[day] = {};
+                                        if (!assignments[day][task.id]) assignments[day][task.id] = [];
+                                        
+                                        if (isSelected) {
+                                          assignments[day][task.id] = assignments[day][task.id].filter(id => id !== u.id);
+                                        } else {
+                                          assignments[day][task.id] = [...assignments[day][task.id], u.id];
+                                        }
+                                        updateRosterConfig({ manualAssignments: assignments });
+                                      }}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${isSelected ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-sm' : 'bg-black/40 text-gray-500 border-[#2a2d36] hover:border-gray-500 hover:text-white'}`}
+                                    >
+                                      {u.name}
+                                    </button>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 mt-6">
                 <h4 className="font-extrabold text-lg text-white mt-2">Task Configuration</h4>
                 <p className="text-sm text-gray-400 font-medium mb-4">Configure frequencies and headcounts for boarding duties.</p>
                 <div className="flex flex-col gap-4">
@@ -310,12 +398,25 @@ export default function SettingsPage() {
                     { id: 'toilet', name: 'Clean Toilet', frequency: 'weekly', occurrencesPerWeek: 1, assigneesPerOccurrence: 1 }
                   ] as any[]).map((task, idx) => (
                     <div key={task.id} className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-xl border border-[#2a2d36] bg-[#121415] gap-4 shadow-sm transition-colors hover:border-gray-700">
-                      <div className="flex flex-col w-40">
-                        <span className="font-mono uppercase tracking-widest text-white text-[10px]">{task.name}</span>
-                        <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mt-0.5">{task.id}</span>
+                      <div className="flex items-center gap-3">
+                        <div className="text-2xl">{task.emoji || <IconMapper iconStr={task.id} className="w-6 h-6 text-emerald-400" />}</div>
+                        <div className="flex flex-col w-32">
+                          <span className="font-mono uppercase tracking-widest text-white text-[10px]">{task.name}</span>
+                          <span className="text-[10px] uppercase tracking-widest font-bold text-gray-500 mt-0.5">{task.id}</span>
+                        </div>
                       </div>
                       
                       <div className="flex flex-wrap items-end gap-4">
+                        <button
+                          onClick={() => {
+                            if(confirm('Are you sure you want to delete this task?')) {
+                              updateRosterConfig({ tasks: (rosterConfig.tasks || []).filter(t => t.id !== task.id) });
+                            }
+                          }}
+                          className="w-8 h-[38px] rounded-lg border border-red-500/20 text-red-400 flex items-center justify-center hover:bg-red-500/10 transition-colors"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
                         <div className="flex flex-col gap-1.5">
                           <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Frequency</label>
                           <select 
@@ -337,22 +438,32 @@ export default function SettingsPage() {
                         </div>
 
                         {task.frequency === 'weekly' && (
-                          <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Times / Week</label>
-                            <div className="flex items-center">
-                              <button onClick={() => {
-                                const newTasks = [...(rosterConfig.tasks || [])];
-                                if (!newTasks[idx]) newTasks[idx] = task;
-                                newTasks[idx] = { ...newTasks[idx], occurrencesPerWeek: Math.max(1, (task.occurrencesPerWeek || 1) - 1) };
-                                updateRosterConfig({ tasks: newTasks });
-                              }} className="w-8 h-[38px] rounded-l-lg bg-[#121415] border border-[#2a2d36] text-gray-400 flex items-center justify-center font-mono hover:text-[#00ff9d] hover:border-[#00ff9d] transition-colors">-</button>
-                              <input type="number" value={task.occurrencesPerWeek || 1} readOnly className="w-12 h-[38px] border-y border-[#2a2d36] text-center font-mono text-sm bg-[#121415] text-white focus:outline-none" />
-                              <button onClick={() => {
-                                const newTasks = [...(rosterConfig.tasks || [])];
-                                if (!newTasks[idx]) newTasks[idx] = task;
-                                newTasks[idx] = { ...newTasks[idx], occurrencesPerWeek: (task.occurrencesPerWeek || 1) + 1 };
-                                updateRosterConfig({ tasks: newTasks });
-                              }} className="w-8 h-[38px] rounded-r-lg bg-[#121415] border border-[#2a2d36] text-gray-400 flex items-center justify-center font-mono hover:text-[#00ff9d] hover:border-[#00ff9d] transition-colors">+</button>
+                          <div className="flex flex-col gap-1.5 w-full md:w-auto">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select Days</label>
+                            <div className="flex items-center gap-1">
+                              {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                                const isSelected = task.targetDays?.includes(day);
+                                return (
+                                  <button
+                                    key={day}
+                                    onClick={() => {
+                                      const newTasks = [...(rosterConfig.tasks || [])];
+                                      if (!newTasks[idx]) newTasks[idx] = task;
+                                      let currentDays = newTasks[idx].targetDays || [];
+                                      if (isSelected) {
+                                        currentDays = currentDays.filter(d => d !== day);
+                                      } else {
+                                        currentDays = [...currentDays, day];
+                                      }
+                                      newTasks[idx] = { ...newTasks[idx], targetDays: currentDays, occurrencesPerWeek: currentDays.length };
+                                      updateRosterConfig({ tasks: newTasks });
+                                    }}
+                                    className={`w-8 h-[38px] rounded-lg border text-[10px] font-bold flex items-center justify-center transition-colors ${isSelected ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_10px_rgba(99,102,241,0.2)]' : 'bg-[#121415] border-[#2a2d36] text-gray-500 hover:text-white hover:border-gray-500'}`}
+                                  >
+                                    {day.slice(0, 2)}
+                                  </button>
+                                );
+                              })}
                             </div>
                           </div>
                         )}
@@ -378,6 +489,59 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Add New Task Form */}
+                  <div className="mt-4 p-5 rounded-xl border border-dashed border-[#2a2d36] bg-[#0B0C0E] flex flex-col gap-4">
+                    <h5 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Add Custom Task</h5>
+                    <div className="flex flex-wrap items-end gap-4">
+                      <div className="flex flex-col gap-1.5 flex-1 min-w-[150px]">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Task Name</label>
+                        <input 
+                          type="text" 
+                          value={newTaskName} 
+                          onChange={e => setNewTaskName(e.target.value)} 
+                          placeholder="e.g. Take out Trash"
+                          className="p-2 h-[38px] rounded-lg border border-[#2a2d36] bg-black/40 text-white text-sm font-semibold focus:outline-none focus:border-[#00ff9d]"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5 w-20">
+                        <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Emoji</label>
+                        <input 
+                          type="text" 
+                          value={newTaskEmoji} 
+                          onChange={e => setNewTaskEmoji(e.target.value)} 
+                          className="p-2 h-[38px] rounded-lg border border-[#2a2d36] bg-black/40 text-center text-xl focus:outline-none focus:border-[#00ff9d]"
+                        />
+                      </div>
+                      <button 
+                        onClick={() => {
+                          if (newTaskName.trim()) {
+                            const newId = newTaskName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                            const newTasks = [...(rosterConfig.tasks || [
+                              { id: 'sweep', name: 'Sweep the floor', frequency: 'daily', assigneesPerOccurrence: 2 },
+                              { id: 'mop', name: 'Mop the floor', frequency: 'weekly', occurrencesPerWeek: 1, assigneesPerOccurrence: 2 },
+                              { id: 'toilet', name: 'Clean Toilet', frequency: 'weekly', occurrencesPerWeek: 1, assigneesPerOccurrence: 1 }
+                            ])];
+                            newTasks.push({
+                              id: newId,
+                              name: newTaskName,
+                              frequency: 'daily',
+                              assigneesPerOccurrence: 1,
+                              emoji: newTaskEmoji || '✨',
+                              targetDays: []
+
+                            });
+                            updateRosterConfig({ tasks: newTasks });
+                            setNewTaskName('');
+                            setNewTaskEmoji('✨');
+                          }
+                        }}
+                        className="h-[38px] px-5 rounded-lg bg-emerald-500/20 text-emerald-400 font-bold text-xs uppercase tracking-widest hover:bg-emerald-500/30 transition-colors"
+                      >
+                        Add Task
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

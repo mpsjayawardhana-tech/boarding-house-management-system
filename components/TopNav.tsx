@@ -17,6 +17,7 @@ const links = [
   { name: "Inventory", href: "/inventory" },
   { name: "Academics", href: "/academics" },
   { name: "Finance", href: "/finance" },
+  { name: "Notices", href: "/notices" },
   { name: "Settings", href: "/settings" },
   { name: "User", href: "/user" }
 ];

@@ -91,7 +91,7 @@ export default function InventoryPage() {
           const userProgress = cycleInfo.userProgress || {};
           const userDebts = cycleInfo.userDebts || {};
           
-          const userStatus = users.filter(u => u.isActive !== false).map(u => {
+          const userStatus = users.filter(u => u.isActive !== false && u.role !== 'super_admin').map(u => {
             const p = userProgress[u.id] || 0;
             const d = userDebts[u.id] || 0;
             const required = (item.quota || 0) + d;
@@ -302,7 +302,7 @@ export default function InventoryPage() {
                         className="p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-emerald-400 shadow-sm font-semibold"
                         required
                       >
-                        {users.filter(u => u.isActive !== false).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                        {users.filter(u => u.isActive !== false && u.role !== 'super_admin').map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
                     </div>
                   </div>

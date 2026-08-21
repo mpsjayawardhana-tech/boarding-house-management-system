@@ -37,7 +37,7 @@ export type AuditLog = {
   details?: string;
 };
 
-export type TaskType = 'sweep' | 'mop' | 'toilet';
+export type TaskType = string;
 
 export type Task = {
   id: string;
@@ -60,11 +60,15 @@ export type RosterTask = {
   frequency: 'daily' | 'weekly';
   occurrencesPerWeek?: number;
   assigneesPerOccurrence: number;
+  emoji?: string;
+  targetDays?: string[];
 };
 
 export type RosterConfig = {
   activeDays: string[];
   tasks: RosterTask[];
+  schedulingMode?: 'deterministic' | 'manual';
+  manualAssignments?: Record<string, Record<string, string[]>>; // dayName -> taskId -> [userIds]
 };
 
 export type InventoryItem = {
@@ -265,7 +269,9 @@ const defaultRosterConfig: RosterConfig = {
     { id: 'sweep', name: 'Sweep the floor', frequency: 'daily', assigneesPerOccurrence: 2 },
     { id: 'mop', name: 'Mop the floor', frequency: 'weekly', occurrencesPerWeek: 1, assigneesPerOccurrence: 2 },
     { id: 'toilet', name: 'Clean Toilet', frequency: 'weekly', occurrencesPerWeek: 1, assigneesPerOccurrence: 1 }
-  ]
+  ],
+  schedulingMode: 'deterministic',
+  manualAssignments: {}
 };
 
 let syncTimeout: any = null;

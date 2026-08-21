@@ -1,30 +1,33 @@
 "use client";
 
 import { useAppStore } from "@/store";
-import { CheckCircle2, Users, Brush, Droplets, Bath } from "lucide-react";
+import { CheckCircle2, Users, Brush, Droplets, Bath, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
 import { useState, useMemo } from "react";
+import { addWeeks, subWeeks, startOfWeek, endOfWeek, format } from "date-fns";
 import { generateDeterministicSchedule, calculateHistoricalBalances } from "@/utils/rosterAlgorithm";
 import { motion } from "framer-motion";
+import { IconMapper } from "@/components/IconMapper";
 
 export const dynamic = 'force-dynamic';
 
 export default function RosterPage() {
   const { users, rosterConfig, completedTasksHistory, upcomingSwaps, completeTask, undoTaskCompletion } = useAppStore();
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   const historicalBalances = useMemo(() => calculateHistoricalBalances(users, completedTasksHistory), [users, completedTasksHistory]);
 
   const weeklySchedule = useMemo(() => {
-    return generateDeterministicSchedule(new Date(), users, rosterConfig, completedTasksHistory, upcomingSwaps);
-  }, [users, rosterConfig, completedTasksHistory, upcomingSwaps]);
+    return generateDeterministicSchedule(currentDate, users, rosterConfig, completedTasksHistory, upcomingSwaps);
+  }, [currentDate, users, rosterConfig, completedTasksHistory, upcomingSwaps]);
 
   const handleComplete = (task: any, actualAssignees: string[]) => {
     completeTask(task, actualAssignees);
     setSelectedTask(null);
   };
 
-  const sortedUsers = [...users].sort((a, b) => (historicalBalances[a.id] || 0) - (historicalBalances[b.id] || 0));
+  const sortedUsers = [...users].filter(u => u.role !== 'super_admin').sort((a, b) => (historicalBalances[a.id] || 0) - (historicalBalances[b.id] || 0));
 
   return (
     <div className="w-full h-full flex flex-col gap-6 pb-10">
@@ -32,7 +35,30 @@ export default function RosterPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Weekly Roster</h1>
-          <p className="text-muted-foreground mt-1">Mathematically fair deterministic scheduling for the active week.</p>
+          <p className="text-muted-foreground mt-1">Mathematically fair deterministic scheduling.</p>
+        </div>
+
+        <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full px-2 py-1 shadow-sm backdrop-blur-md">
+          <button 
+            onClick={() => setCurrentDate(subWeeks(currentDate, 1))}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          
+          <div className="flex items-center gap-2 px-2 text-sm font-bold text-white min-w-[140px] justify-center">
+            <Calendar className="w-4 h-4 text-emerald-400" />
+            <span className="tracking-tight">
+              {format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')} - {format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')}
+            </span>
+          </div>
+
+          <button 
+            onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
+            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -105,8 +131,8 @@ export default function RosterPage() {
                     <div key={task.id} className={`flex flex-col gap-3 p-4 rounded-2xl border ${task.isCompleted ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-[#1A1C1E] border-[#2a2d36]'} transition-colors shadow-sm`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="bg-[#121415] p-2 rounded-lg border border-[#2a2d36]">
-                            {task.type === 'sweep' ? <Brush size={16} className="text-[#00ff9d]" /> : task.type === 'mop' ? <Droplets size={16} className="text-[#00ff9d]" /> : <Bath size={16} className="text-[#00ff9d]" />}
+                          <span className="bg-[#121415] p-2 rounded-lg border border-[#2a2d36] text-xl">
+                            {rosterConfig.tasks?.find(t => t.id === task.type)?.emoji || <IconMapper iconStr={task.type} className="w-4 h-4 text-[#00ff9d]" />}
                           </span>
                           <span className={`font-mono uppercase tracking-widest text-[10px] font-bold ${task.isCompleted ? 'text-[#00ff9d]' : 'text-white'}`}>{task.title}</span>
                         </div>
