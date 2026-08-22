@@ -333,7 +333,7 @@ export default function Dashboard() {
               <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]"></div>
             </div>
             <div className="flex-1 flex flex-col gap-4 relative z-10">
-              {inventoryAlerts.map(item => {
+              {inventoryAlerts.map((item: any) => {
                 const nextPerson = users.find(u => u.id === item.nextInLineId);
                 return (
                   <div key={item.id} className="flex flex-col gap-3 p-4 rounded-2xl bg-black/20 border border-[#2a2d36]">
