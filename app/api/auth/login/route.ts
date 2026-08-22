@@ -14,11 +14,13 @@ export async function POST(request: Request) {
 
     await dbConnect();
     const appStateDoc = await AppState.findOne();
-    if (!appStateDoc || !appStateDoc.state || !appStateDoc.state.users) {
+    const actualState = appStateDoc.state?.state || appStateDoc.state;
+
+    if (!appStateDoc || !actualState || !actualState.users) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const users = appStateDoc.state.users;
+    const users = actualState.users;
     const user = users.find((u: any) => u.username?.toLowerCase() === username.toLowerCase());
 
     if (!user || user.password !== password) {

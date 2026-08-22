@@ -21,7 +21,8 @@ export async function POST(request: Request) {
     // Optional: Validate if user still exists in AppState
     await dbConnect();
     const appStateDoc = await AppState.findOne();
-    const users = appStateDoc?.state?.users || [];
+    const actualState = appStateDoc?.state?.state || appStateDoc?.state;
+    const users = actualState?.users || [];
     const user = users.find((u: any) => u.id === payload.userId);
 
     if (!user || user.status !== 'active' && user.status !== 'pending_approval') {

@@ -6,12 +6,13 @@ export async function GET(request: Request) {
   try {
     await dbConnect();
     const appStateDoc = await AppState.findOne();
-    if (!appStateDoc || !appStateDoc.state) {
+    const actualState = appStateDoc.state?.state || appStateDoc.state;
+    if (!appStateDoc || !actualState) {
       return NextResponse.json({ inventoryItems: [], inventoryCycles: {} });
     }
 
-    const inventoryItems = appStateDoc.state.inventoryItems || [];
-    const inventoryCycles = appStateDoc.state.inventoryCycles || {};
+    const inventoryItems = actualState.inventoryItems || [];
+    const inventoryCycles = actualState.inventoryCycles || {};
 
     return NextResponse.json({ inventoryItems, inventoryCycles });
   } catch (error) {
