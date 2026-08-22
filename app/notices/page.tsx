@@ -2,7 +2,7 @@
 
 import { useAppStore } from "@/store";
 import { useNoticeStore, Notice } from "@/store/noticeStore";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Calendar, AlertTriangle, CheckCircle2, Pin, CalendarDays, X } from "lucide-react";
 import { format } from "date-fns";
@@ -17,6 +17,11 @@ export default function NoticesPage() {
   
   const [activeTab, setActiveTab] = useState<'common' | 'me'>('common');
   const [isAdding, setIsAdding] = useState(false);
+  
+  const fetchNotices = useNoticeStore(state => state.fetchNotices);
+  useEffect(() => {
+    fetchNotices();
+  }, [fetchNotices]);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -125,14 +130,17 @@ export default function NoticesPage() {
                   key={notice.id}
                   className={`relative p-6 rounded-3xl border backdrop-blur-xl shadow-2xl flex flex-col gap-4 group transition-all duration-300 ${
                     isEmergency 
-                      ? 'bg-red-500/5 border-red-500/30 animate-[pulse_2s_ease-in-out_infinite] hover:border-red-500/50' 
+                      ? 'bg-red-500/5 border-red-500/30 hover:border-red-500/50' 
                       : notice.isDone 
                         ? 'bg-black/40 border-white/5 opacity-50 hover:opacity-100' 
                         : 'bg-[#141618]/80 border-white/[0.08] hover:border-white/[0.15]'
                   }`}
                 >
                   {isEmergency && (
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-bl-full -mr-4 -mt-4 blur-[3rem] pointer-events-none"></div>
+                    <>
+                      <div className="absolute inset-0 rounded-3xl pointer-events-none animate-pulse ring-1 ring-red-500/50 bg-red-500/5"></div>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-bl-full -mr-4 -mt-4 blur-[3rem] pointer-events-none"></div>
+                    </>
                   )}
 
                   <div className="flex justify-between items-start z-10 relative">

@@ -48,19 +48,16 @@ export function CustomCloudinaryUpload({ onUploadSuccess, compact = false }: { o
 
       const formData = new FormData();
       formData.append('file', croppedBlob);
-      // HARDCODE values as requested in Phase 42 to bypass Next.js env caching issues
-      formData.append('upload_preset', 'pcg_preset');
-
-      const response = await fetch(`https://api.cloudinary.com/v1_1/ammascfn/image/upload`, {
+      
+      const { apiFetch } = await import('@/lib/apiFetch');
+      const response = await apiFetch(`/api/upload`, {
         method: 'POST',
         body: formData,
       });
 
       const data = await response.json();
       if (data.secure_url) {
-        // Inject f_webp,q_auto to force WebP optimized delivery
-        const optimizedUrl = data.secure_url.replace('/upload/', '/upload/f_webp,q_auto/');
-        onUploadSuccess(optimizedUrl);
+        onUploadSuccess(data.secure_url);
         setImageSrc(null); // Close modal
       } else {
         console.error("Upload failed:", data);

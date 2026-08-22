@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useAppStore } from "@/store";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
+import useSWR from 'swr';
+import { calculateNetBalances } from "@/lib/financeUtils";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
 import { generateDeterministicSchedule } from "@/utils/rosterAlgorithm";
 import { IconMapper } from "@/components/IconMapper";
@@ -14,6 +16,8 @@ import { motion, Reorder } from "framer-motion";
 import { MiniTimetableWidget } from "@/components/MiniTimetableWidget";
 import { DashboardNoticeBoard } from "@/components/DashboardNoticeBoard";
 import nextDynamic from "next/dynamic";
+
+const fetcher = (url: string) => import('@/lib/apiFetch').then(({ apiFetch }) => apiFetch(url).then(res => res.json()));
 
 const ActivityHeatmap = nextDynamic(() => import("@/components/ActivityHeatmap").then(mod => mod.ActivityHeatmap), { 
   ssr: false, 
@@ -31,6 +35,7 @@ export default function Dashboard() {
   const { 
     users = [], 
     inventoryItems = [], 
+    inventoryCycles = {},
     p2pDebts = [], 
     payments = [],
     completedTasksHistory = [], 
@@ -43,8 +48,9 @@ export default function Dashboard() {
   } = useAppStore();
   
   const currentUser = users.find(u => u.id === currentUserId);
-  if (!currentUser) return null;
   const [isEditMode, setIsEditMode] = useState(false);
+  
+  if (!currentUser) return null;
   
   const pendingRequests = users.filter(u => u.roomId === currentUser?.roomId && u.status === 'pending_approval');
 
@@ -67,18 +73,9 @@ export default function Dashboard() {
   const todaysTasks = todaysSchedule?.tasks || [];
   const displayDayName = todaysSchedule?.dayName || todayName;
 
-  const balances: Record<string, number> = {};
-  if (currentUser) {
-    users.forEach(u => { balances[u.id] = 0; });
-    p2pDebts.forEach(debt => {
-      if (debt.payerId === currentUser.id) balances[debt.borrowerId] = (balances[debt.borrowerId] || 0) + debt.amount;
-      if (debt.borrowerId === currentUser.id) balances[debt.payerId] = (balances[debt.payerId] || 0) - debt.amount;
-    });
-    payments.forEach(payment => {
-      if (payment.payerId === currentUser.id) balances[payment.payeeId] = (balances[payment.payeeId] || 0) + payment.amount;
-      if (payment.payeeId === currentUser.id) balances[payment.payerId] = (balances[payment.payerId] || 0) - payment.amount;
-    });
-  }
+  const balances: Record<string, number> = currentUser 
+    ? calculateNetBalances(users, currentUser.id, p2pDebts, payments) 
+    : {};
 
   const pendingOwes = Object.keys(balances).filter(id => balances[id] < 0).map(id => {
     const relatedDebts = p2pDebts.filter(d => d.borrowerId === currentUser?.id && d.payerId === id);
@@ -92,8 +89,12 @@ export default function Dashboard() {
 
   const pendingDebtsSum = pendingOwes.reduce((sum, d) => sum + d.amount, 0);
 
-  const inventoryAlerts = inventoryItems.map(item => {
-    const cycleInfo = useAppStore.getState().inventoryCycles?.[item.id] || {};
+  const { data: inventoryData } = useSWR('/api/inventory', fetcher, { refreshInterval: 5000 });
+  const currentInventoryCycles = inventoryData?.inventoryCycles || inventoryCycles;
+  const currentInventoryItems = inventoryData?.inventoryItems || inventoryItems;
+
+  const inventoryAlerts = currentInventoryItems.map((item: any) => {
+    const cycleInfo = currentInventoryCycles?.[item.id] || {};
     const userProgress = cycleInfo.userProgress || {};
     const userDebts = cycleInfo.userDebts || {};
     

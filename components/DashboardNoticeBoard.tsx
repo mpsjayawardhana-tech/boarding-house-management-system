@@ -2,14 +2,18 @@ import { useNoticeStore } from "@/store/noticeStore";
 import { AlertTriangle, Calendar, Pin, ChevronRight, GripVertical } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 interface DashboardNoticeBoardProps {
   isEditMode?: boolean;
 }
 
 export function DashboardNoticeBoard({ isEditMode }: DashboardNoticeBoardProps) {
-  const { notices } = useNoticeStore();
+  const { notices, fetchNotices } = useNoticeStore();
+
+  useEffect(() => {
+    fetchNotices();
+  }, [fetchNotices]);
 
   const latestCommonNotices = useMemo(() => {
     return notices
@@ -45,11 +49,14 @@ export function DashboardNoticeBoard({ isEditMode }: DashboardNoticeBoardProps) 
             return (
               <div key={notice.id} className={`p-4 rounded-2xl flex flex-col gap-2 relative overflow-hidden group border ${
                 isEmergency 
-                  ? 'bg-red-500/5 border-red-500/30 animate-[pulse_2s_ease-in-out_infinite]' 
+                  ? 'bg-red-500/5 border-red-500/30' 
                   : 'bg-black/30 border-white/[0.05]'
               }`}>
                 {isEmergency && (
-                  <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+                  <>
+                    <div className="absolute inset-0 rounded-2xl pointer-events-none animate-pulse ring-1 ring-red-500/50 bg-red-500/5"></div>
+                    <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-bl-full -mr-4 -mt-4"></div>
+                  </>
                 )}
                 
                 <div className="flex items-center gap-2">

@@ -125,6 +125,7 @@ export type CourseSession = {
   endTime: string;
   type: 'Lecture' | 'Practical' | 'Tutorial';
   room: string;
+  group?: string;
 };
 
 export const generateSessionId = (courseId: string, session: CourseSession) => {
@@ -158,6 +159,7 @@ export type Attendance = {
   userId: string;
   courseId: string;
   date: string;
+  sessionType: string;
   status: 'attended' | 'missed';
 };
 
@@ -246,7 +248,7 @@ interface AppState {
   addHoliday: (holiday: Omit<Holiday, 'id'>) => void;
   removeHoliday: (id: string) => void;
   updateTimetableConfig: (config: Partial<TimetableConfig>) => void;
-  markAttendance: (userId: string, courseId: string, date: string, status: 'attended' | 'missed') => void;
+  markAttendance: (userId: string, courseId: string, date: string, sessionType: string, status: 'attended' | 'missed') => void;
   removeAttendance: (id: string) => void;
   toggleCourseEnrollment: (userId: string, courseId: string) => void;
   setEnrollments: (userId: string, courseIds: string[]) => void;
@@ -281,7 +283,8 @@ const cloudStorage: any = {
     if (typeof window === 'undefined') return null; // Prevent SSR fetch
     console.log("Fetching state from MongoDB Atlas...");
     try {
-      const response = await fetch('/api/sync');
+      const { apiFetch } = await import('@/lib/apiFetch');
+      const response = await apiFetch('/api/sync');
       const data = await response.json();
       return data.state ? JSON.stringify(data.state) : null;
     } catch (e) {
@@ -295,7 +298,8 @@ const cloudStorage: any = {
     syncTimeout = setTimeout(async () => {
       console.log("Syncing state to MongoDB Atlas...");
       try {
-        await fetch('/api/sync', {
+        const { apiFetch } = await import('@/lib/apiFetch');
+        await apiFetch('/api/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ state: JSON.parse(value) })
@@ -314,19 +318,41 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       pastStates: [],
-      pushUndoState: () => set(state => {
+      pushUndoState: () => {
+        const state = get();
         const { pastStates, pushUndoState, undoLastAction, resetAllData, completeTask, undoTaskCompletion, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, forceNextCycle, revertPreviousCycle, updateItemQuota, adminEditProgress, addP2PDebt, updateP2PDebt, deleteP2PDebt, toggleBoardingFee, addUser, removeUser, updateUser, updateUserAvatar, toggleCourseEnrollment, toggleSessionEnrollment, setCurrentUserId, updateRosterConfig, addInventoryItem, removeInventoryItem, ...stateData } = state as any;
         const snapshot = JSON.stringify(stateData);
-        return { pastStates: [...state.pastStates.slice(-9), snapshot] }; // keep last 10
-      }),
-      undoLastAction: () => set(state => {
-        if (state.pastStates.length === 0) return state;
+        
+        const newPast = [...state.pastStates.slice(-9), snapshot];
+        set({ pastStates: newPast });
+        
+        import('@/lib/apiFetch').then(({ apiFetch }) => {
+          apiFetch('/api/undo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ snapshots: newPast })
+          }).catch(console.error);
+        });
+      },
+      undoLastAction: async () => {
+        const state = get();
+        if (state.pastStates.length === 0) return;
+        
         const newPast = [...state.pastStates];
         const snapshotStr = newPast.pop();
-        if (!snapshotStr) return state;
+        if (!snapshotStr) return;
+        
         const snapshot = JSON.parse(snapshotStr);
-        return { ...snapshot, pastStates: newPast };
-      }),
+        set({ ...snapshot, pastStates: newPast });
+        
+        import('@/lib/apiFetch').then(({ apiFetch }) => {
+          apiFetch('/api/undo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ snapshots: newPast })
+          }).catch(console.error);
+        });
+      },
       resetAllData: () => set(state => {
         state.pushUndoState();
         return {
@@ -446,7 +472,8 @@ export const useAppStore = create<AppState>()(
       users: defaultUsers,
       addUser: (user) => set(state => {
         state.pushUndoState();
-        return { users: [...state.users, { password: 'abc123', ...user, id: Date.now().toString(), isActive: true }] };
+        const newId = (user as any).id || Date.now().toString();
+        return { users: [...state.users, { password: 'abc123', ...user, id: newId, isActive: true }] };
       }),
       updateUser: (id, user) => set(state => {
         state.pushUndoState();
@@ -516,7 +543,8 @@ export const useAppStore = create<AppState>()(
       }],
       addRoom: (room) => set(state => {
         state.pushUndoState();
-        return { rooms: [...state.rooms, { ...room, id: Date.now().toString() }] };
+        const newId = (room as any).id || Date.now().toString();
+        return { rooms: [...state.rooms, { ...room, id: newId }] };
       }),
       updateRoom: (id, room) => set(state => {
         state.pushUndoState();
@@ -669,9 +697,10 @@ export const useAppStore = create<AppState>()(
         });
       },
 
-      addInventoryLog: (log) => set(state => ({
-        inventoryLogs: [{ id: Date.now().toString(), ...log }, ...state.inventoryLogs]
-      })),
+      addInventoryLog: (log) => set(state => {
+        state.pushUndoState();
+        return { inventoryLogs: [{ id: Date.now().toString(), ...log }, ...state.inventoryLogs] };
+      }),
       updateInventoryLog: (id, log) => set(state => {
         state.pushUndoState();
         return { inventoryLogs: state.inventoryLogs.map(l => l.id === id ? { ...l, ...log } : l) };
@@ -830,11 +859,11 @@ export const useAppStore = create<AppState>()(
         state.pushUndoState();
         return { timetableConfig: { ...state.timetableConfig, ...config } };
       }),
-      markAttendance: (userId, courseId, date, status) => set(state => {
+      markAttendance: (userId, courseId, date, sessionType, status) => set(state => {
         state.pushUndoState();
-        // Remove existing record for this user/course/date if it exists to avoid duplicates
-        const filtered = state.attendances.filter(a => !(a.userId === userId && a.courseId === courseId && a.date === date));
-        return { attendances: [...filtered, { id: Date.now().toString(), userId, courseId, date, status }] };
+        // Remove existing record for this user/course/date/sessionType if it exists to avoid duplicates
+        const filtered = state.attendances.filter(a => !(a.userId === userId && a.courseId === courseId && a.date === date && a.sessionType === sessionType));
+        return { attendances: [...filtered, { id: Date.now().toString(), userId, courseId, date, sessionType, status }] };
       }),
       removeAttendance: (id) => set(state => {
         state.pushUndoState();
@@ -883,7 +912,7 @@ export const useAppStore = create<AppState>()(
       version: 1,
       storage: createJSONStorage(() => cloudStorage),
       partialize: (state) => {
-        const { isAdminAuthenticated, currentUserId, ...rest } = state;
+        const { isAdminAuthenticated, currentUserId, pastStates, ...rest } = state;
         return rest;
       },
       merge: (persistedState: any, currentState: AppState) => {

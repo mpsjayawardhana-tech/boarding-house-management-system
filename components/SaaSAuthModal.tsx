@@ -31,22 +31,39 @@ export function SaaSAuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
   
   const [successMsg, setSuccessMsg] = useState('');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = users.find(u => u.username?.toLowerCase() === loginUsername.toLowerCase());
+    setIsLoading(true);
+    setLoginError('');
     
-    if (!user || user.password !== loginPassword) {
-      setLoginError("Invalid username or password");
-      return;
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: loginUsername, password: loginPassword })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setLoginError(data.error || "Login failed");
+        setIsLoading(false);
+        return;
+      }
+      
+      const { setAccessToken } = await import('@/lib/apiFetch');
+      setAccessToken(data.accessToken);
+      
+      setCurrentUserId(data.user.id);
+      onClose();
+    } catch (error) {
+      console.error(error);
+      setLoginError("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
     }
-    
-    if (user.status === 'pending_approval') {
-      setLoginError("Your account is pending admin approval.");
-      return;
-    }
-    
-    setCurrentUserId(user.id);
-    onClose();
   };
 
   const handleCreateRoom = (e: React.FormEvent) => {
@@ -58,16 +75,17 @@ export function SaaSAuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
 
     const roomId = `room_${Date.now()}`;
     const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const userId = (Date.now() + 1).toString(); // +1 to avoid collision with roomId timestamp
     
     addRoom({
       name: roomName,
       inviteCode,
       university,
       faculty,
-      logoUrl
-    });
+      logoUrl,
+      id: roomId // pass pre-generated ID
+    } as any);
     
-    const userId = Date.now().toString();
     addUser({
       name: signupUsername,
       username: signupUsername,
@@ -77,8 +95,9 @@ export function SaaSAuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
       roomId,
       avatar: `https://api.dicebear.com/8.x/notionists/svg?seed=${signupUsername}`,
       isActive: true,
-      dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap']
-    });
+      dashboardLayout: ['overview', 'monthly', 'timetable', 'duties', 'financial', 'inventory', 'feeTracker', 'heatmap'],
+      id: userId // pass pre-generated ID
+    } as any);
     
     setCurrentUserId(userId);
     onClose();
@@ -162,8 +181,8 @@ export function SaaSAuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: (
                 
                 {loginError && <p className="text-red-400 text-xs font-medium">{loginError}</p>}
                 
-                <button type="submit" className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-bold py-3 rounded-xl transition-colors mt-2 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
-                  Sign In
+                <button type="submit" disabled={isLoading} className="w-full bg-[#00ff9d] text-black font-bold py-3.5 rounded-xl hover:bg-[#00cc7d] transition-colors shadow-[0_0_15px_rgba(0,255,157,0.3)] mt-2 flex justify-center items-center gap-2">
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'} <ArrowRight size={18} />
                 </button>
               </form>
 

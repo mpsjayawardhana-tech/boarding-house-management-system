@@ -1,12 +1,13 @@
 "use client";
 
-import { useAppStore } from "@/store";
+import { useAppStore, P2PDebt, Payment, User } from "@/store";
 import { format } from "date-fns";
 import { CheckCircle2, Edit2, Plus, Trash2, WalletCards, ArrowRightLeft, Coins, X } from "lucide-react";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
 import { motion } from "framer-motion";
+import { calculateNetBalances } from "@/lib/financeUtils";
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -36,33 +37,8 @@ export default function FinancePage() {
   });
 
   const personalBalances = useMemo(() => {
-    const balances: Record<string, number> = {};
-    
-    users.filter(u => u.id !== currentUserId).forEach(otherUser => {
-      // amountTheyOweYou: Sum of all active debts where creditorId === currentUser.id and debtorId === otherUser.id
-      const amountTheyOweYou = p2pDebts
-        .filter(debt => debt.payerId === currentUserId && debt.borrowerId === otherUser.id)
-        .reduce((sum, debt) => sum + Number(debt.amount), 0);
-
-      // amountYouOweThem: Sum of all active debts where creditorId === otherUser.id and debtorId === currentUser.id
-      const amountYouOweThem = p2pDebts
-        .filter(debt => debt.payerId === otherUser.id && debt.borrowerId === currentUserId)
-        .reduce((sum, debt) => sum + Number(debt.amount), 0);
-
-      // (Optional: handle payments if you want a true net running balance. 
-      //  The instructions specified just amountTheyOweYou - amountYouOweThem for the debts, but we'll include payments to keep the app working correctly!)
-      const paymentsIReceived = payments
-        .filter(p => p.payeeId === currentUserId && p.payerId === otherUser.id)
-        .reduce((sum, p) => sum + Number(p.amount), 0);
-
-      const paymentsIMade = payments
-        .filter(p => p.payerId === currentUserId && p.payeeId === otherUser.id)
-        .reduce((sum, p) => sum + Number(p.amount), 0);
-
-      balances[otherUser.id] = (amountTheyOweYou - amountYouOweThem) - (paymentsIReceived - paymentsIMade);
-    });
-
-    return balances;
+    if (!currentUserId) return {};
+    return calculateNetBalances(users, currentUserId, p2pDebts, payments);
   }, [p2pDebts, payments, users, currentUserId]);
 
   const handleSubmit = (e: React.FormEvent) => {

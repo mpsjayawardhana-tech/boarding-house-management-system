@@ -49,14 +49,23 @@ export function RoomLogoCropper({
       const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
       if (!croppedBlob) throw new Error("Failed to crop image");
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        onUploadSuccess(base64String);
+      const formData = new FormData();
+      formData.append('file', croppedBlob);
+
+      const { apiFetch } = await import('@/lib/apiFetch');
+      const response = await apiFetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.secure_url) {
+        onUploadSuccess(data.secure_url);
         setImageSrc(null);
-        setIsProcessing(false);
-      };
-      reader.readAsDataURL(croppedBlob);
+      } else {
+        throw new Error(data.error || "Upload failed");
+      }
+      setIsProcessing(false);
     } catch (error) {
       console.error("Crop error:", error);
       alert("Error cropping image. Please try again.");

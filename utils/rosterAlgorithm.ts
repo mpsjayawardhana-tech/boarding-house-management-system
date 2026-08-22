@@ -147,9 +147,9 @@ export function generateDeterministicSchedule(
     
     const targetDays = t.frequency === 'daily' 
       ? activeDays 
-      : (t.targetDays && t.targetDays.length > 0 ? t.targetDays.filter(d => activeDays.includes(d)) : [...activeDays].sort().slice(0, occurrences)); // Deterministic distribution fallback
+      : (t.targetDays && t.targetDays.length > 0 ? t.targetDays.filter((d: string) => activeDays.includes(d)) : [...activeDays].sort().slice(0, occurrences)); // Deterministic distribution fallback
 
-    targetDays.forEach(dayName => {
+    targetDays.forEach((dayName: string) => {
       const ids = getDistinctUsers(t.assigneesPerOccurrence, dayName, globalOffset);
       
       // Increment offset so tie-breaker rotates fairly among those with identical balances

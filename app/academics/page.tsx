@@ -369,9 +369,9 @@ export default function AcademicsPage() {
                     </div>
                   ) : (
                     todaySessions.map((session, idx) => {
-                      // Note: We use the course ID and date to find the attendance record. 
-                      // If there are multiple sessions for a course on the same day, they will all share the same attendance record.
-                      const record = attendances.find(a => a.userId === currentUser.id && a.courseId === session.courseId && a.date === todayDateStr);
+                      // Note: We use the course ID, date, and sessionType to find the attendance record. 
+                      // This ensures lectures and practicals on the same day don't share the same record.
+                      const record = attendances.find(a => a.userId === currentUser.id && a.courseId === session.courseId && a.date === todayDateStr && a.sessionType === session.type);
                       
                       let typeColor = 'bg-gray-500';
                       let typeText = 'text-gray-400';
@@ -404,14 +404,14 @@ export default function AcademicsPage() {
                               <>
                                 <motion.button 
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => markAttendance(currentUser.id, session.courseId, todayDateStr, 'missed')}
+                                  onClick={() => markAttendance(currentUser.id, session.courseId, todayDateStr, session.type, 'missed')}
                                   className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold text-xs bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-colors"
                                 >
                                   Missed
                                 </motion.button>
                                 <motion.button 
                                   whileTap={{ scale: 0.95 }}
-                                  onClick={() => markAttendance(currentUser.id, session.courseId, todayDateStr, 'attended')}
+                                  onClick={() => markAttendance(currentUser.id, session.courseId, todayDateStr, session.type, 'attended')}
                                   className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors"
                                 >
                                   Attended

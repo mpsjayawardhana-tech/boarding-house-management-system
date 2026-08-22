@@ -10,6 +10,8 @@ import { IconMapper } from "@/components/IconMapper";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import nextDynamic from "next/dynamic";
+import { curriculumData } from "@/lib/curriculumData";
+import Select from "react-select";
 
 const ConfirmModal = nextDynamic(() => import("@/components/ConfirmModal").then(mod => mod.ConfirmModal), { ssr: false });
 const UserProfileModal = nextDynamic(() => import("@/components/UserProfileModal").then(mod => mod.UserProfileModal), { ssr: false });
@@ -53,11 +55,22 @@ export default function SettingsPage() {
     action: () => {}
   });
 
-  const [newCourse, setNewCourse] = useState({
-    code: '',
-    name: '',
-    creditHours: 2,
-    sessions: []
+  const [newSessionForm, setNewSessionForm] = useState<{
+    subjectCode: string;
+    type: 'Lecture' | 'Practical' | 'Tutorial';
+    dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday';
+    startTime: string;
+    endTime: string;
+    room: string;
+    group: string;
+  }>({
+    subjectCode: '',
+    type: 'Lecture',
+    dayOfWeek: 'Monday',
+    startTime: '08:00',
+    endTime: '10:00',
+    room: '',
+    group: ''
   });
 
   const [newHoliday, setNewHoliday] = useState({
@@ -144,7 +157,7 @@ export default function SettingsPage() {
     );
   }
 
-  console.log("Current Preset:", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
 
   return (
     <div className="w-full min-h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -777,48 +790,158 @@ export default function SettingsPage() {
                   <form 
                     onSubmit={(e) => {
                       e.preventDefault();
-                      if (!newCourse.name) return;
-                      addCourse(newCourse as any);
-                      setNewCourse({ code: '', name: '', creditHours: 2, sessions: [] });
+                      if (!newSessionForm.subjectCode) return;
+                      
+                      const selectedSubject = curriculumData.find(s => s.code === newSessionForm.subjectCode);
+                      if (!selectedSubject) return;
+
+                      const typeLetter = newSessionForm.type.charAt(0); // L, P, or T
+                      const groupSuffix = newSessionForm.group ? ` - ${newSessionForm.group}` : '';
+                      const finalCode = `${selectedSubject.code} (${typeLetter})${groupSuffix}`;
+                      
+                      const finalName = `${selectedSubject.name} (${newSessionForm.type})`;
+                      
+                      const newSession = {
+                        dayOfWeek: newSessionForm.dayOfWeek,
+                        startTime: newSessionForm.startTime,
+                        endTime: newSessionForm.endTime,
+                        type: newSessionForm.type,
+                        room: newSessionForm.room || 'TBA',
+                        group: newSessionForm.group || undefined
+                      };
+
+                      addCourse({
+                        code: finalCode,
+                        name: finalName,
+                        creditHours: selectedSubject.credits,
+                        sessions: [newSession]
+                      });
+
+                      // Reset times but keep other context for rapid entry
+                      setNewSessionForm(prev => ({ ...prev, startTime: prev.endTime, endTime: '', room: '' }));
                     }}
                     className="flex flex-col gap-4 bg-[#090A0C]/50 p-4 rounded-2xl border border-white/5"
                   >
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs text-gray-500 font-bold uppercase">Course Code</label>
-                      <input 
-                        type="text"
-                        placeholder="e.g. CMIS 2113"
-                        value={newCourse.code}
-                        onChange={e => setNewCourse({ ...newCourse, code: e.target.value })}
-                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                      <label className="text-xs text-gray-500 font-bold uppercase">Select Subject</label>
+                      <Select 
+                        value={{ value: newSessionForm.subjectCode, label: curriculumData.find(s => s.code === newSessionForm.subjectCode) ? `${newSessionForm.subjectCode} - ${curriculumData.find(s => s.code === newSessionForm.subjectCode)?.name}` : '-- Choose Subject from Curriculum --' } as any}
+                        onChange={(selected: any) => setNewSessionForm({ ...newSessionForm, subjectCode: selected?.value || '' })}
+                        options={curriculumData.map(sub => ({ value: sub.code, label: `${sub.code} - ${sub.name}` }))}
+                        isSearchable
+                        styles={{
+                          control: (base, state) => ({
+                            ...base,
+                            backgroundColor: '#141618',
+                            borderColor: state.isFocused ? 'rgba(16, 185, 129, 0.5)' : '#2a2d36',
+                            borderRadius: '0.75rem',
+                            padding: '2px 8px',
+                            boxShadow: 'none',
+                            '&:hover': {
+                              borderColor: state.isFocused ? 'rgba(16, 185, 129, 0.5)' : '#2a2d36'
+                            }
+                          }),
+                          menu: (base) => ({
+                            ...base,
+                            backgroundColor: '#141618',
+                            border: '1px solid #2a2d36',
+                            borderRadius: '0.75rem',
+                            overflow: 'hidden',
+                            zIndex: 50
+                          }),
+                          option: (base, state) => ({
+                            ...base,
+                            backgroundColor: state.isFocused ? 'rgba(255,255,255,0.05)' : 'transparent',
+                            color: state.isFocused ? '#fff' : '#d1d5db',
+                            cursor: 'pointer',
+                            '&:active': {
+                              backgroundColor: 'rgba(255,255,255,0.1)'
+                            }
+                          }),
+                          singleValue: (base) => ({ ...base, color: '#fff' }),
+                          input: (base) => ({ ...base, color: '#fff' })
+                        }}
                       />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs text-gray-500 font-bold uppercase">Subject Name</label>
-                      <input 
-                        required
-                        type="text"
-                        placeholder="e.g. Data Structures"
-                        value={newCourse.name}
-                        onChange={e => setNewCourse({ ...newCourse, name: e.target.value })}
-                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
-                      />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Session Type</label>
+                        <select 
+                          value={newSessionForm.type}
+                          onChange={e => setNewSessionForm({ ...newSessionForm, type: e.target.value as any })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50"
+                        >
+                          <option value="Lecture">Lecture (L)</option>
+                          <option value="Practical">Practical (P)</option>
+                          <option value="Tutorial">Tutorial (T)</option>
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Day of Week</label>
+                        <select 
+                          value={newSessionForm.dayOfWeek}
+                          onChange={e => setNewSessionForm({ ...newSessionForm, dayOfWeek: e.target.value as any })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50"
+                        >
+                          <option value="Monday">Monday</option>
+                          <option value="Tuesday">Tuesday</option>
+                          <option value="Wednesday">Wednesday</option>
+                          <option value="Thursday">Thursday</option>
+                          <option value="Friday">Friday</option>
+                        </select>
+                      </div>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs text-gray-500 font-bold uppercase">Credits</label>
-                      <input 
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={newCourse.creditHours}
-                        onChange={e => setNewCourse({ ...newCourse, creditHours: parseInt(e.target.value) || 0 })}
-                        className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
-                      />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Start Time</label>
+                        <input 
+                          type="time"
+                          required
+                          value={newSessionForm.startTime}
+                          onChange={e => setNewSessionForm({ ...newSessionForm, startTime: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">End Time</label>
+                        <input 
+                          type="time"
+                          required
+                          value={newSessionForm.endTime}
+                          onChange={e => setNewSessionForm({ ...newSessionForm, endTime: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Room/Hall (Optional)</label>
+                        <input 
+                          type="text"
+                          placeholder="e.g. Mini Aud"
+                          value={newSessionForm.room}
+                          onChange={e => setNewSessionForm({ ...newSessionForm, room: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <label className="text-xs text-gray-500 font-bold uppercase">Group (Optional)</label>
+                        <input 
+                          type="text"
+                          placeholder="e.g. Group A, All"
+                          value={newSessionForm.group}
+                          onChange={e => setNewSessionForm({ ...newSessionForm, group: e.target.value })}
+                          className="bg-[#141618] border border-[#2a2d36] rounded-xl px-4 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+
                     <button type="submit" className="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 py-2 rounded-xl font-bold transition-colors mt-2">
-                      Add Course Placeholder
+                      Add Course Session
                     </button>
-                    <p className="text-xs text-gray-500 text-center">Sessions can currently only be configured via the raw JSON dump.</p>
                   </form>
 
                   <div className="flex flex-col gap-4 mt-2">
@@ -829,7 +952,12 @@ export default function SettingsPage() {
                           <div className="flex items-center justify-between">
                             <div className="flex flex-col">
                               <span className="font-bold text-white text-sm">{course.code} - {course.name}</span>
-                              <span className="text-xs text-gray-500">{course.creditHours} Credits • {course.sessions?.length || 0} Sessions</span>
+                              <span className="text-xs text-gray-500">
+                                {course.creditHours} Credits
+                                {course.sessions?.length > 0 && (
+                                  <> • {course.sessions[0].dayOfWeek} {course.sessions[0].startTime}-{course.sessions[0].endTime} {course.sessions[0].room ? `(${course.sessions[0].room})` : ''}</>
+                                )}
+                              </span>
                             </div>
                             <button onClick={() => removeCourse(course.id)} className="text-red-400 hover:text-red-300 p-1">✕</button>
                           </div>
