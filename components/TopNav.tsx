@@ -142,17 +142,7 @@ export function TopNav() {
         layout
         className="flex items-center gap-3"
       >
-        {currentRoom?.logoUrl ? (
-          <Image src={currentRoom.logoUrl} alt={currentRoom.name} width={isScrolled ? 40 : 50} height={isScrolled ? 40 : 50} className="object-contain rounded-lg shadow-md" />
-        ) : (
-          <div className="w-10 h-10 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-black tracking-widest">
-            {currentRoom?.name ? currentRoom.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() : 'RT'}
-          </div>
-        )}
-        <div className="flex flex-col hidden sm:flex">
-          <span className="font-extrabold text-sm text-white tracking-tight leading-tight">{currentRoom?.name || 'My Room'}</span>
-          <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{currentRoom?.faculty || 'Dashboard'}</span>
-        </div>
+        <Image src="/bodimalogo.png" alt="Bodima Logo" width={isScrolled ? 70 : 85} height={24} className="invert opacity-90 object-contain" />
       </motion.div>
 
       {/* Center: Navigation Links */}

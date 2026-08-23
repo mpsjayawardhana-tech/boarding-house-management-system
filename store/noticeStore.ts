@@ -1,17 +1,14 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { format, addDays } from 'date-fns';
+import { format } from 'date-fns';
 
-export type NoticeScope = 'common' | 'me';
-export type NoticePriority = 'normal' | 'event' | 'emergency';
+export type NoticeType = 'academic' | 'hostel' | 'emergency' | 'personal';
 
 export interface Notice {
   id: string;
-  scope: NoticeScope;
-  priority: NoticePriority;
+  type: NoticeType;
   title: string;
   description: string;
-  dueDate?: string;
+  date?: string;
   createdAt: string;
   createdBy: string;
   isDone?: boolean;
@@ -33,14 +30,55 @@ export const useNoticeStore = create<NoticeState>((set, get) => ({
       const { apiFetch } = await import('@/lib/apiFetch');
       const response = await apiFetch('/api/notices');
       const data = await response.json();
-      if (data.notices) {
+      
+      if (data.notices && data.notices.length > 0) {
         set({ notices: data.notices });
+      } else if (data.notices && data.notices.length === 0) {
+        // Add Dummy Data
+        const dummyNotices: Notice[] = [
+          {
+            id: 'dummy1',
+            type: 'academic',
+            title: 'SE3010 Final Project Submission',
+            description: 'Submit your final software engineering project via the LMS portal.',
+            date: format(new Date(), 'yyyy-MM-dd'),
+            createdAt: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+            createdBy: 'admin'
+          },
+          {
+            id: 'dummy2',
+            type: 'academic',
+            title: 'Mathematics Assignment 3',
+            description: 'Complete the differential equations assignment.',
+            date: format(new Date(Date.now() + 86400000 * 2), 'yyyy-MM-dd'),
+            createdAt: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+            createdBy: 'admin'
+          },
+          {
+            id: 'dummy3',
+            type: 'hostel',
+            title: 'Room Cleaning Day',
+            description: 'Please ensure your room is clean. Room inspection will happen tomorrow.',
+            date: format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'),
+            createdAt: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+            createdBy: 'admin'
+          }
+        ];
+        set({ notices: dummyNotices });
+        // Optionally POST them to db to persist
+        for (const notice of dummyNotices) {
+          await apiFetch('/api/notices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(notice)
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to fetch notices:", error);
     }
   },
-  
+
   addNotice: async (notice) => {
     const newNotice = {
       ...notice,

@@ -1,7 +1,9 @@
 "use client";
 
+import { Settings, Save, AlertTriangle, UserPlus, FileEdit, Trash2, Key, Database, RefreshCw, Smartphone, Monitor } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
 import { useAppStore } from "@/store";
-import { Camera, Settings, Upload } from "lucide-react";
+import { Camera, Upload } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -161,18 +163,19 @@ export default function SettingsPage() {
 
   return (
     <div className="w-full min-h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Admin Settings</h1>
-          <p className="text-gray-400 mt-1">Manage global application settings, configurations, and users.</p>
-        </div>
-        <button 
-          onClick={logoutAdmin}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5 bg-red-500/10 text-red-400 border border-red-500/20"
-        >
-          Logout Admin
-        </button>
-      </div>
+      <PageHeader
+        title="Admin Settings"
+        icon={Settings}
+        description="Manage global application settings, configurations, and users."
+        actionButton={
+          <button 
+            onClick={logoutAdmin}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold shadow-md transition-all hover:-translate-y-0.5 bg-red-500/10 text-red-400 border border-red-500/20"
+          >
+            Logout Admin
+          </button>
+        }
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-[#2a2d36] shrink-0">

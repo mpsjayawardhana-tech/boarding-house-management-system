@@ -105,6 +105,51 @@ export type Payment = {
   date: string;
 };
 
+export type Transaction = {
+  id: string;
+  userId: string;
+  type: 'income' | 'expense';
+  isFixed: boolean;
+  amount: number;
+  category: string;
+  date: string;
+  note: string;
+};
+
+export type Budget = {
+  categoryId: string;
+  userId: string;
+  monthlyLimit: number;
+};
+
+export type PersonalDebt = {
+  id: string;
+  userId: string;
+  lenderName: string;
+  totalAmount: number;
+  paidAmount: number;
+  interestRate?: number;
+};
+
+export type LentMoney = {
+  id: string;
+  userId: string;
+  borrowerName: string;
+  amount: number;
+  date: string;
+  note: string;
+  isPaid: boolean;
+};
+
+export type FinancialGoal = {
+  id: string;
+  userId: string;
+  title: string;
+  targetAmount: number;
+  currentSaved: number;
+  type: 'Short-term' | 'Long-term' | 'Emergency';
+};
+
 export type UpcomingSwap = {
   taskType: TaskType;
   fromUserId: string;
@@ -216,6 +261,31 @@ interface AppState {
   inventoryCycles: Record<string, InventoryCycleState>;
   p2pDebts: P2PDebt[];
   payments: Payment[];
+  walletBalances: Record<string, number>;
+  transactions: Transaction[];
+  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  removeTransaction: (id: string) => void;
+  updateTransaction: (id: string, transaction: Partial<Omit<Transaction, 'id'>>) => void;
+  updateWalletBalance: (userId: string, amount: number) => void;
+  
+  budgets: Budget[];
+  setBudget: (userId: string, categoryId: string, limit: number) => void;
+  deleteBudget: (userId: string, categoryId: string) => void;
+  
+  personalDebts: PersonalDebt[];
+  addPersonalDebt: (debt: Omit<PersonalDebt, 'id'>) => void;
+  updatePersonalDebt: (id: string, updates: Partial<PersonalDebt>) => void;
+  deletePersonalDebt: (id: string) => void;
+
+  lentMoneys: LentMoney[];
+  addLentMoney: (lend: Omit<LentMoney, 'id'>) => void;
+  markLentMoneyPaid: (id: string) => void;
+  
+  financialGoals: FinancialGoal[];
+  addFinancialGoal: (goal: Omit<FinancialGoal, 'id'>) => void;
+  updateFinancialGoal: (id: string, updates: Partial<FinancialGoal>) => void;
+  deleteFinancialGoal: (id: string) => void;
+  
   boardingFees: BoardingFeeState; 
   
   addInventoryLog: (log: Omit<InventoryLog, 'id'>) => void;
@@ -320,7 +390,7 @@ export const useAppStore = create<AppState>()(
       pastStates: [],
       pushUndoState: () => {
         const state = get();
-        const { pastStates, pushUndoState, undoLastAction, resetAllData, completeTask, undoTaskCompletion, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, forceNextCycle, revertPreviousCycle, updateItemQuota, adminEditProgress, addP2PDebt, updateP2PDebt, deleteP2PDebt, toggleBoardingFee, addUser, removeUser, updateUser, updateUserAvatar, toggleCourseEnrollment, toggleSessionEnrollment, setCurrentUserId, updateRosterConfig, addInventoryItem, removeInventoryItem, ...stateData } = state as any;
+        const { pastStates, pushUndoState, undoLastAction, resetAllData, completeTask, undoTaskCompletion, addInventoryLog, updateInventoryLog, deleteInventoryLog, addInventoryContribution, forceNextCycle, revertPreviousCycle, updateItemQuota, adminEditProgress, addP2PDebt, updateP2PDebt, deleteP2PDebt, addTransaction, removeTransaction, updateTransaction, updateWalletBalance, setBudget, deleteBudget, addPersonalDebt, updatePersonalDebt, deletePersonalDebt, addLentMoney, markLentMoneyPaid, addFinancialGoal, updateFinancialGoal, deleteFinancialGoal, toggleBoardingFee, addUser, removeUser, updateUser, updateUserAvatar, toggleCourseEnrollment, toggleSessionEnrollment, setCurrentUserId, updateRosterConfig, addInventoryItem, removeInventoryItem, ...stateData } = state as any;
         const snapshot = JSON.stringify(stateData);
         
         const newPast = [...state.pastStates.slice(-9), snapshot];
@@ -371,6 +441,12 @@ export const useAppStore = create<AppState>()(
             'soap': { currentCycle: 1, userProgress: {}, userDebts: {} }
           },
           p2pDebts: [],
+          walletBalances: {},
+          transactions: [],
+          budgets: [],
+          personalDebts: [],
+          lentMoneys: [],
+          financialGoals: [],
           boardingFees: {},
           courses: [
             {
@@ -587,6 +663,12 @@ export const useAppStore = create<AppState>()(
       inventoryCycles: {},
       p2pDebts: [],
       payments: [],
+      walletBalances: {},
+      transactions: [],
+      budgets: [],
+      personalDebts: [],
+      lentMoneys: [],
+      financialGoals: [],
       boardingFees: {},
       courses: [
         { id: 'cmis2113_L', code: 'CMIS 2113 (L)', name: 'Object-Oriented Programming (Lecture)', creditHours: 2, sessions: [{ dayOfWeek: 'Monday', startTime: '08:30', endTime: '10:30', type: 'Lecture', room: 'MH' }] },
@@ -817,6 +899,133 @@ export const useAppStore = create<AppState>()(
             amount,
             date: format(new Date(), 'yyyy-MM-dd')
           }, ...state.payments]
+        };
+      }),
+
+      addTransaction: (transaction) => set(state => {
+        state.pushUndoState();
+        const currentBalance = state.walletBalances[transaction.userId] || 0;
+        const newBalance = transaction.type === 'income' 
+          ? currentBalance + transaction.amount 
+          : currentBalance - transaction.amount;
+          
+        return {
+          transactions: [{ id: Date.now().toString(), ...transaction }, ...state.transactions],
+          walletBalances: { ...state.walletBalances, [transaction.userId]: newBalance }
+        };
+      }),
+      removeTransaction: (id) => set(state => {
+        state.pushUndoState();
+        const transaction = state.transactions.find(t => t.id === id);
+        if (!transaction) return state;
+        
+        const currentBalance = state.walletBalances[transaction.userId] || 0;
+        const newBalance = transaction.type === 'income' 
+          ? currentBalance - transaction.amount 
+          : currentBalance + transaction.amount;
+          
+        return {
+          transactions: state.transactions.filter(e => e.id !== id),
+          walletBalances: { ...state.walletBalances, [transaction.userId]: newBalance }
+        };
+      }),
+      updateTransaction: (id, updatedTx) => set(state => {
+        state.pushUndoState();
+        const transaction = state.transactions.find(t => t.id === id);
+        if (!transaction) return state;
+        
+        const userId = transaction.userId;
+        let currentBalance = state.walletBalances[userId] || 0;
+        
+        currentBalance = transaction.type === 'income' 
+          ? currentBalance - transaction.amount 
+          : currentBalance + transaction.amount;
+          
+        const newType = updatedTx.type || transaction.type;
+        const newAmount = updatedTx.amount !== undefined ? updatedTx.amount : transaction.amount;
+        currentBalance = newType === 'income' 
+          ? currentBalance + newAmount 
+          : currentBalance - newAmount;
+          
+        return {
+          transactions: state.transactions.map(e => e.id === id ? { ...e, ...updatedTx } : e),
+          walletBalances: { ...state.walletBalances, [userId]: currentBalance }
+        };
+      }),
+      updateWalletBalance: (userId, amount) => set(state => {
+        state.pushUndoState();
+        return {
+          walletBalances: { ...state.walletBalances, [userId]: amount }
+        };
+      }),
+
+      setBudget: (userId, categoryId, limit) => set(state => {
+        state.pushUndoState();
+        const existing = state.budgets.find(b => b.userId === userId && b.categoryId === categoryId);
+        if (existing) {
+          return {
+            budgets: state.budgets.map(b => (b.userId === userId && b.categoryId === categoryId) ? { ...b, monthlyLimit: limit } : b)
+          };
+        } else {
+          return {
+            budgets: [...state.budgets, { userId, categoryId, monthlyLimit: limit }]
+          };
+        }
+      }),
+      deleteBudget: (userId, categoryId) => set(state => {
+        return {
+          budgets: state.budgets.filter(b => !(b.userId === userId && b.categoryId === categoryId))
+        };
+      }),
+
+      addPersonalDebt: (debt) => set(state => {
+        state.pushUndoState();
+        return {
+          personalDebts: [...state.personalDebts, { ...debt, id: Date.now().toString() }]
+        };
+      }),
+
+      updatePersonalDebt: (id, updates) => set(state => {
+        state.pushUndoState();
+        return {
+          personalDebts: state.personalDebts.map(d => d.id === id ? { ...d, ...updates } : d)
+        };
+      }),
+
+      deletePersonalDebt: (id) => set(state => {
+        state.pushUndoState();
+        return {
+          personalDebts: state.personalDebts.filter(d => d.id !== id)
+        };
+      }),
+
+      addLentMoney: (lend) => set(state => {
+        state.pushUndoState();
+        return { lentMoneys: [...state.lentMoneys, { ...lend, id: Date.now().toString() }] };
+      }),
+      markLentMoneyPaid: (id) => set(state => {
+        state.pushUndoState();
+        return { lentMoneys: state.lentMoneys.map(l => l.id === id ? { ...l, isPaid: true } : l) };
+      }),
+
+      addFinancialGoal: (goal) => set(state => {
+        state.pushUndoState();
+        return {
+          financialGoals: [...state.financialGoals, { ...goal, id: Date.now().toString() }]
+        };
+      }),
+
+      updateFinancialGoal: (id, updates) => set(state => {
+        state.pushUndoState();
+        return {
+          financialGoals: state.financialGoals.map(g => g.id === id ? { ...g, ...updates } : g)
+        };
+      }),
+
+      deleteFinancialGoal: (id) => set(state => {
+        state.pushUndoState();
+        return {
+          financialGoals: state.financialGoals.filter(g => g.id !== id)
         };
       }),
 

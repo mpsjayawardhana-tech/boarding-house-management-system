@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/PageHeader";
+import { Package } from "lucide-react";
 import { useAppStore } from "@/store";
 import { format } from "date-fns";
 import { Edit2, Plus, Trash2, Box, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -69,19 +71,20 @@ export default function InventoryPage() {
   return (
     <div className="w-full h-full flex flex-col gap-6 pb-10">
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Advanced Inventory</h1>
-          <p className="text-gray-400 mt-1">Smart quota cycles and debt tracking.</p>
-        </div>
-        <button 
-          onClick={() => { setIsAdding(!isAdding); setEditingId(null); }}
-          className="flex items-center gap-2 bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-400 transition-all hover:-translate-y-0.5"
-        >
-          <Plus className="w-4 h-4" />
-          {isAdding ? 'Cancel' : 'Log Purchase'}
-        </button>
-      </div>
+      <PageHeader
+        title="Advanced Inventory"
+        icon={Package}
+        description="Smart quota cycles and debt tracking."
+        actionButton={
+          <button 
+            onClick={() => { setIsAdding(!isAdding); setEditingId(null); }}
+            className="flex items-center gap-2 bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-400 transition-all hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            {isAdding ? 'Cancel' : 'Log Purchase'}
+          </button>
+        }
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         

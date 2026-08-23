@@ -1,7 +1,9 @@
 "use client";
 
+import { PageHeader } from "@/components/PageHeader";
 import { useAppStore } from "@/store";
 import { useNoticeStore, Notice } from "@/store/noticeStore";
+import { TodoWidget } from "@/components/TodoWidget";
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Calendar, AlertTriangle, CheckCircle2, Pin, CalendarDays, X } from "lucide-react";
@@ -15,7 +17,8 @@ export default function NoticesPage() {
   
   const { notices, addNotice, deleteNotice, markNoticeDone } = useNoticeStore();
   
-  const [activeTab, setActiveTab] = useState<'common' | 'me'>('common');
+  const [activeTab, setActiveTab] = useState<'common' | 'personal'>('common');
+  const [mainTab, setMainTab] = useState<'notices' | 'todos'>('notices');
   const [isAdding, setIsAdding] = useState(false);
   
   const fetchNotices = useNoticeStore(state => state.fetchNotices);
@@ -26,16 +29,18 @@ export default function NoticesPage() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    scope: 'common' as 'common' | 'me',
-    priority: 'normal' as 'normal' | 'event' | 'emergency',
-    dueDate: ''
+    type: 'hostel' as 'academic' | 'hostel' | 'emergency' | 'personal',
+    date: ''
   });
 
   const filteredNotices = useMemo(() => {
     return notices
-      .filter(n => n.scope === activeTab)
       .filter(n => {
-        if (activeTab === 'me') {
+        if (activeTab === 'personal') return n.type === 'personal';
+        return n.type !== 'personal';
+      })
+      .filter(n => {
+        if (activeTab === 'personal') {
           return n.createdBy === currentUserId || n.createdBy === 'me';
         }
         return true;
@@ -50,14 +55,13 @@ export default function NoticesPage() {
     addNotice({
       title: formData.title,
       description: formData.description,
-      scope: formData.scope,
-      priority: formData.priority,
-      dueDate: formData.dueDate || undefined,
+      type: formData.type,
+      date: formData.date || undefined,
       createdBy: currentUser.id,
       isDone: false
     });
     
-    setFormData({ title: '', description: '', scope: 'common', priority: 'normal', dueDate: '' });
+    setFormData({ title: '', description: '', type: 'hostel', date: '' });
     setIsAdding(false);
   };
 
@@ -71,26 +75,39 @@ export default function NoticesPage() {
 
   return (
     <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <Pin className="w-8 h-8 text-[#00ff9d]" /> Notice Board
-          </h1>
-          <p className="text-gray-400 mt-2 text-sm md:text-base font-medium max-w-xl">
-            Stay updated with room announcements and your personal pinned notes.
-          </p>
-        </div>
-        
-        <button 
-          onClick={() => setIsAdding(true)}
-          className="bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+      <PageHeader
+        title="Notice Board"
+        icon={Pin}
+        description="Stay updated with room announcements and your personal pinned notes."
+        actionButton={
+          <button 
+            onClick={() => setIsAdding(true)}
+            className="bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-400 hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Create Notice</span>
+          </button>
+        }
+      />
+
+      <div className="flex gap-2 p-1 bg-black/20 rounded-lg w-fit mb-6">
+        <button
+          onClick={() => setMainTab('notices')}
+          className={`px-6 py-2 rounded-md font-bold text-sm transition-all duration-300 ${mainTab === 'notices' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
         >
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">Create Notice</span>
+          Notices
+        </button>
+        <button
+          onClick={() => setMainTab('todos')}
+          className={`px-6 py-2 rounded-md font-bold text-sm transition-all duration-300 ${mainTab === 'todos' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-white'}`}
+        >
+          To-Do List
         </button>
       </div>
 
-      <div className="flex bg-black/40 p-1.5 rounded-2xl w-fit border border-white/5 shadow-inner mb-2">
+      {mainTab === 'notices' ? (
+        <>
+          <div className="flex bg-black/40 p-1.5 rounded-2xl w-fit border border-white/5 shadow-inner mb-2">
         <button
           onClick={() => setActiveTab('common')}
           className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'common' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
@@ -98,8 +115,8 @@ export default function NoticesPage() {
           Common Board
         </button>
         <button
-          onClick={() => setActiveTab('me')}
-          className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'me' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+          onClick={() => setActiveTab('personal')}
+          className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'personal' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
         >
           My Notes
         </button>
@@ -117,8 +134,8 @@ export default function NoticesPage() {
             </motion.div>
           ) : (
             filteredNotices.map((notice) => {
-              const isEmergency = notice.priority === 'emergency';
-              const isEvent = notice.priority === 'event';
+              const isEmergency = notice.type === 'emergency';
+              const isEvent = notice.type === 'academic';
               const creator = users.find(u => u.id === notice.createdBy);
               
               return (
@@ -150,12 +167,12 @@ export default function NoticesPage() {
                       <span className={`text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-md ${
                         isEmergency ? 'bg-red-500/20 text-red-400' : isEvent ? 'bg-blue-500/20 text-blue-400' : 'bg-white/10 text-gray-300'
                       }`}>
-                        {notice.priority}
+                        {notice.type === 'academic' ? 'ACADEMIC DEADLINE' : notice.type === 'hostel' ? 'GENERAL / HOSTEL' : (notice.type || 'UNKNOWN').toUpperCase()}
                       </span>
                     </div>
                     
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {activeTab === 'me' && (
+                      {activeTab === 'personal' && (
                         <button 
                           onClick={() => markNoticeDone(notice.id, !notice.isDone)}
                           className={`p-1.5 rounded-lg transition-colors ${notice.isDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-gray-400 hover:bg-emerald-500/10 hover:text-emerald-400'}`}
@@ -163,7 +180,7 @@ export default function NoticesPage() {
                           <CheckCircle2 className="w-4 h-4" />
                         </button>
                       )}
-                      {(activeTab === 'me' || canDelete(notice)) && (
+                      {(activeTab === 'personal' || canDelete(notice)) && (
                         <button 
                           onClick={() => deleteNotice(notice.id)}
                           className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-red-500/10 hover:text-red-400 transition-colors"
@@ -175,10 +192,10 @@ export default function NoticesPage() {
                   </div>
 
                   <div className="z-10 relative">
-                    <h3 className={`text-xl font-extrabold tracking-tight ${isEmergency ? 'text-red-100' : 'text-white'} ${notice.isDone ? 'line-through text-gray-500' : ''}`}>
+                    <h3 className={`text-xl font-semibold ${isEmergency ? 'text-red-100' : 'text-white'} ${notice.isDone ? 'line-through text-gray-500' : ''}`}>
                       {notice.title}
                     </h3>
-                    <p className={`mt-2 text-sm font-medium ${isEmergency ? 'text-red-200/70' : 'text-gray-400'} ${notice.isDone ? 'line-through' : ''}`}>
+                    <p className={`mt-2 text-sm ${isEmergency ? 'text-red-200/70' : 'text-gray-400'} ${notice.isDone ? 'line-through' : ''}`}>
                       {notice.description}
                     </p>
                   </div>
@@ -189,10 +206,10 @@ export default function NoticesPage() {
                       <span>•</span>
                       <span>{format(new Date(notice.createdAt), 'MMM dd')}</span>
                     </div>
-                    {notice.dueDate && (
+                    {notice.date && (
                       <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-md">
                         <CalendarDays className="w-3.5 h-3.5" />
-                        {notice.dueDate}
+                        {notice.date}
                       </div>
                     )}
                   </div>
@@ -202,7 +219,10 @@ export default function NoticesPage() {
           )}
         </AnimatePresence>
       </div>
-
+      </>
+      ) : (
+        <TodoWidget />
+      )}
       {isAdding && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-[#141618]/90 backdrop-blur-2xl shadow-2xl rounded-3xl p-6 md:p-8 border border-[#2a2d36] max-w-lg w-full animate-in zoom-in-95 duration-200 relative">
@@ -242,42 +262,28 @@ export default function NoticesPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Scope</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Notice Type</label>
                   <select 
-                    value={formData.scope}
-                    onChange={e => setFormData({...formData, scope: e.target.value as 'common' | 'me'})}
+                    value={formData.type}
+                    onChange={e => setFormData({...formData, type: e.target.value as 'academic' | 'hostel' | 'emergency' | 'personal'})}
                     className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium appearance-none cursor-pointer focus:border-emerald-500/50 focus:outline-none transition-colors"
                   >
-                    <option value="common">Common Board</option>
-                    <option value="me">Personal Note (Me)</option>
-                  </select>
-                </div>
-                
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Priority</label>
-                  <select 
-                    value={formData.priority}
-                    onChange={e => setFormData({...formData, priority: e.target.value as 'normal' | 'event' | 'emergency'})}
-                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium appearance-none cursor-pointer focus:border-emerald-500/50 focus:outline-none transition-colors"
-                  >
-                    <option value="normal">Normal</option>
-                    <option value="event">Event</option>
+                    <option value="hostel">General/Hostel</option>
+                    <option value="academic">Academic Deadline</option>
                     <option value="emergency">Emergency</option>
+                    <option value="personal">Personal Note</option>
                   </select>
                 </div>
 
-                {formData.priority === 'event' && (
-                  <div className="flex flex-col gap-1.5 md:col-span-2 animate-in fade-in zoom-in-95 duration-200">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Due Date</label>
-                    <input 
-                      type="date" 
-                      value={formData.dueDate}
-                      onChange={e => setFormData({...formData, dueDate: e.target.value})}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none transition-colors"
-                      required
-                    />
-                  </div>
-                )}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Date (Optional)</label>
+                  <input 
+                    type="date" 
+                    value={formData.date}
+                    onChange={e => setFormData({...formData, date: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none transition-colors"
+                  />
+                </div>
               </div>
               
               <div className="flex justify-end gap-3 mt-4">

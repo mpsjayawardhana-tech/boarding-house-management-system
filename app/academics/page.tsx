@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/PageHeader";
 import { useAppStore } from "@/store";
 import { format, isWithinInterval, parseISO } from "date-fns";
 import { motion } from "framer-motion";
@@ -7,6 +8,7 @@ import { BookOpen, Check, CheckCircle2, ChevronRight, Clock, Crown, GraduationCa
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { GPACalculator } from "@/components/GPACalculator";
+import { UpcomingDeadlinesWidget } from "@/components/UpcomingDeadlinesWidget";
 
 export const dynamic = 'force-dynamic';
 
@@ -301,29 +303,27 @@ export default function AcademicsPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="w-full h-full flex flex-col gap-6 pb-10"
+      className="w-full flex flex-col gap-6 pb-10 overflow-x-hidden"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-            <GraduationCap className="w-8 h-8 text-emerald-400" />
-            Academics
-          </h1>
-          <p className="text-gray-400 mt-1">Manage your university attendance and track your progress.</p>
-        </div>
-        <button 
-          onClick={() => setIsEditingSubjects(true)}
-          className="px-5 py-2 rounded-xl font-bold text-sm bg-[#141618] hover:bg-[#23252b] text-gray-300 border border-[#2a2d36] transition-colors"
-        >
-          Edit Subjects
-        </button>
-      </div>
+      <PageHeader
+        title="Academics"
+        icon={GraduationCap}
+        description="Manage your university attendance and track your progress."
+        actionButton={
+          <button 
+            onClick={() => setIsEditingSubjects(true)}
+            className="px-5 py-2 rounded-xl font-bold text-sm bg-[#141618] hover:bg-[#23252b] text-gray-300 border border-[#2a2d36] transition-colors"
+          >
+            Edit Subjects
+          </button>
+        }
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
         {/* Left Column: Today's Schedule */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden">
+          <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden h-fit">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
             
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between border-b border-[#2a2d36] pb-4 mb-6 gap-4">
@@ -361,7 +361,7 @@ export default function AcademicsPage() {
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                   {todaySessions.length === 0 ? (
                     <div className="bg-black/20 border border-dashed border-[#2a2d36] rounded-2xl p-8 text-center">
                       <p className="text-gray-400 font-medium">No enrolled classes scheduled for today.</p>
@@ -445,13 +445,15 @@ export default function AcademicsPage() {
               )}
             </div>
           </div>
+          
+          <UpcomingDeadlinesWidget />
         </div>
 
         {/* Right Column: Widgets */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-span-1">
           
           {/* Personal Stats */}
-          <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden flex flex-col items-center justify-center text-center">
+          <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden flex flex-col items-center justify-center text-center h-fit">
             <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[3rem] pointer-events-none"></div>
             
             <h3 className="font-extrabold text-lg tracking-tight text-white mb-6 relative z-10 w-full text-left border-b border-[#2a2d36] pb-3">Your Attendance</h3>
@@ -507,7 +509,7 @@ export default function AcademicsPage() {
           </div>
 
           {/* Leaderboard */}
-          <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden flex flex-col flex-1">
+          <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden flex flex-col h-fit">
             <div className="absolute bottom-0 right-0 w-48 h-48 bg-gradient-to-br from-yellow-500/10 to-orange-500/5 rounded-full translate-y-1/3 translate-x-1/3 blur-[3rem] pointer-events-none"></div>
             
             <h3 className="font-extrabold text-lg tracking-tight text-white mb-4 relative z-10 border-b border-[#2a2d36] pb-3 flex items-center gap-2">

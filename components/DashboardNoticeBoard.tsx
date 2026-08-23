@@ -17,7 +17,7 @@ export function DashboardNoticeBoard({ isEditMode }: DashboardNoticeBoardProps) 
 
   const latestCommonNotices = useMemo(() => {
     return notices
-      .filter(n => n.scope === 'common')
+      .filter(n => n.type !== 'personal')
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 3);
   }, [notices]);
@@ -43,31 +43,22 @@ export function DashboardNoticeBoard({ isEditMode }: DashboardNoticeBoardProps) 
             <p className="text-gray-400 text-sm font-medium text-center">No common notices right now.</p>
           </div>
         ) : latestCommonNotices.map(notice => {
-            const isEmergency = notice.priority === 'emergency';
-            const isEvent = notice.priority === 'event';
+            const isEmergency = notice.type === 'emergency';
+            const isAcademic = notice.type === 'academic';
+            const isHostel = notice.type === 'hostel';
             
             return (
-              <div key={notice.id} className={`p-4 rounded-2xl flex flex-col gap-2 relative overflow-hidden group border ${
-                isEmergency 
-                  ? 'bg-red-500/5 border-red-500/30' 
-                  : 'bg-black/30 border-white/[0.05]'
-              }`}>
-                {isEmergency && (
-                  <>
-                    <div className="absolute inset-0 rounded-2xl pointer-events-none animate-pulse ring-1 ring-red-500/50 bg-red-500/5"></div>
-                    <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-bl-full -mr-4 -mt-4"></div>
-                  </>
-                )}
-                
+              <div key={notice.id} className="p-4 rounded-xl flex flex-col gap-2 relative overflow-hidden group bg-[#141618]/60 border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all">
                 <div className="flex items-center gap-2">
-                  {isEmergency && <AlertTriangle className="w-4 h-4 text-red-400" />}
-                  {isEvent && <Calendar className="w-4 h-4 text-blue-400" />}
-                  <h4 className={`text-sm font-bold tracking-tight truncate flex-1 ${isEmergency ? 'text-red-300' : 'text-white'}`}>
+                  {isEmergency && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                  {isAcademic && <Calendar className="w-4 h-4 text-blue-400" />}
+                  {isHostel && <Pin className="w-4 h-4 text-emerald-400" />}
+                  <h4 className="text-sm font-semibold text-gray-200 truncate flex-1">
                     {notice.title}
                   </h4>
                 </div>
                 
-                <p className="text-xs font-medium text-gray-400 line-clamp-2">
+                <p className="text-xs text-gray-400 line-clamp-2">
                   {notice.description}
                 </p>
               </div>

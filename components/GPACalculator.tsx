@@ -2,36 +2,22 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calculator, TrendingUp, Sparkles, X, BookOpen, Crown, Info, GraduationCap, ChevronDown, ChevronUp } from 'lucide-react';
+import { BookOpen, Calculator, Crown, Sparkles, TrendingUp, X, ChevronDown, ChevronUp, Settings2, Info, GraduationCap, ChevronRight } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '../store';
 import { curriculumData } from '../lib/curriculumData';
+import { TargetGPAPredictor } from './TargetGPAPredictor';
 
-type Grade = 'A+' | 'A' | 'A-' | 'B+' | 'B' | 'B-' | 'C+' | 'C' | 'C-' | 'D+' | 'D' | 'E' | '';
-
-const GRADE_POINTS: Record<Exclude<Grade, ''>, number> = {
-  'A+': 4.0, 'A': 4.0, 'A-': 3.7,
-  'B+': 3.3, 'B': 3.0, 'B-': 2.7,
-  'C+': 2.3, 'C': 2.0, 'C-': 1.7,
-  'D+': 1.3, 'D': 1.0, 'E': 0.0
-};
-
-type ActiveSubject = {
-  id: string;
-  code: string;
-  name: string;
-  credits: number;
-  grade: Grade;
-  level: number;
-  semester: number;
-};
+import { useAcademicStore, Grade, GRADE_POINTS, ActiveSubject } from '../store/academicStore';
 
 export function GPACalculator() {
   const currentUser = useAppStore(state => state.currentUserId);
   const enrollments = useAppStore(state => state.enrollments);
   const globalCourses = useAppStore(state => state.courses);
 
-  const [activeSubjects, setActiveSubjects] = useState<ActiveSubject[]>([]);
+  const { activeSubjects, predictive, isLoaded, setActiveSubjects, setPredictive, fetchGPAData, saveGPAData } = useAcademicStore();
+  const safeSubjects = Array.isArray(activeSubjects) ? activeSubjects : [];
+
   const [activeTab, setActiveTab] = useState<'syllabus' | 'custom'>('syllabus');
 
   // Syllabus Tab State
@@ -44,53 +30,25 @@ export function GPACalculator() {
     code: '', name: '', credits: 3, grade: '' as Grade, level: 1, semester: 1
   });
 
-  const [predictive, setPredictive] = useState({
-    active: false,
-    targetCredits: 15,
-    targetGPA: 4.0,
-    totalDegreeCredits: 120
-  });
-
-  const [isLoaded, setIsLoaded] = useState(false);
-
   useEffect(() => {
-    if (!currentUser) return;
-    import('@/lib/apiFetch').then(({ apiFetch }) => {
-      apiFetch(`/api/gpa?userId=${currentUser}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.gpaData) {
-            setActiveSubjects(data.gpaData.activeSubjects || []);
-            if (data.gpaData.predictive) setPredictive(data.gpaData.predictive);
-          }
-          setIsLoaded(true);
-        })
-        .catch(err => {
-          console.error("Failed to fetch GPA data:", err);
-          setIsLoaded(true);
-        });
-    });
-  }, [currentUser]);
+    if (currentUser) {
+      fetchGPAData(currentUser);
+    }
+  }, [currentUser, fetchGPAData]);
 
   useEffect(() => {
     if (!isLoaded || !currentUser) return;
     const timeout = setTimeout(() => {
-      import('@/lib/apiFetch').then(({ apiFetch }) => {
-        apiFetch('/api/gpa', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUser, activeSubjects, predictive })
-        }).catch(console.error);
-      });
+      saveGPAData(currentUser);
     }, 1000);
     return () => clearTimeout(timeout);
-  }, [activeSubjects, predictive, isLoaded, currentUser]);
+  }, [safeSubjects, predictive, isLoaded, currentUser, saveGPAData]);
 
   // Calculate stats based on activeSubjects
   const calculatedData = useMemo(() => {
     // Group subjects by Level and Semester
     const grouped: Record<string, ActiveSubject[]> = {};
-    activeSubjects.forEach(sub => {
+    safeSubjects.forEach(sub => {
       const key = `Level ${sub.level} - Semester ${sub.semester}`;
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(sub);
@@ -132,6 +90,31 @@ export function GPACalculator() {
       };
     });
 
+    const areaStats: Record<string, { credits: number; points: number }> = {};
+    safeSubjects.forEach(c => {
+      if (c.credits === 0 || !c.grade) return;
+      const matchTarget = c.code || c.name;
+      const prefixMatch = matchTarget.match(/^[a-zA-Z]+/);
+      if (!prefixMatch) return;
+      const prefix = prefixMatch[0].toUpperCase();
+
+      if (!areaStats[prefix]) {
+        areaStats[prefix] = { credits: 0, points: 0 };
+      }
+      const points = GRADE_POINTS[c.grade as keyof typeof GRADE_POINTS] * c.credits;
+      areaStats[prefix].credits += c.credits;
+      areaStats[prefix].points += points;
+    });
+
+    const areaBreakdown = Object.keys(areaStats)
+      .map(prefix => ({
+        prefix,
+        credits: areaStats[prefix].credits,
+        gpa: areaStats[prefix].credits > 0 ? areaStats[prefix].points / areaStats[prefix].credits : 0
+      }))
+      .filter(a => a.credits > 0)
+      .sort((a, b) => b.gpa - a.gpa);
+
     const currentCGPA = cumulativeCredits > 0 ? cumulativePoints / cumulativeCredits : 0;
     
     // Future predictions
@@ -168,8 +151,8 @@ export function GPACalculator() {
       }
     }
 
-    return { semesterStats, currentCGPA, totalCredits: cumulativeCredits, projectedCGPA, maxPossibleCGPA, chartData };
-  }, [activeSubjects, predictive]);
+    return { semesterStats, currentCGPA, totalCredits: cumulativeCredits, projectedCGPA, maxPossibleCGPA, chartData, areaBreakdown };
+  }, [safeSubjects, predictive]);
 
   const handleAddSyllabusSubjects = () => {
     const subjectsToAdd = curriculumData
@@ -184,7 +167,7 @@ export function GPACalculator() {
         semester: s.semester
       }));
 
-    setActiveSubjects(prev => [...prev, ...subjectsToAdd]);
+    setActiveSubjects([...safeSubjects, ...subjectsToAdd]);
     setSelectedSyllabusCodes([]);
   };
 
@@ -192,7 +175,7 @@ export function GPACalculator() {
     e.preventDefault();
     if (!customForm.name) return;
     
-    setActiveSubjects(prev => [...prev, {
+    setActiveSubjects([...safeSubjects, {
       id: Date.now().toString() + Math.random(),
       ...customForm
     }]);
@@ -201,11 +184,11 @@ export function GPACalculator() {
   };
 
   const updateSubjectGrade = (id: string, grade: Grade) => {
-    setActiveSubjects(prev => prev.map(s => s.id === id ? { ...s, grade } : s));
+    setActiveSubjects(safeSubjects.map(s => s.id === id ? { ...s, grade } : s));
   };
 
   const removeSubject = (id: string) => {
-    setActiveSubjects(prev => prev.filter(s => s.id !== id));
+    setActiveSubjects(safeSubjects.filter(s => s.id !== id));
   };
 
   const getClassification = (cgpa: number) => {
@@ -224,355 +207,348 @@ export function GPACalculator() {
   }, [selectedLevel, selectedSemester]);
 
   return (
-    <div className="w-full flex flex-col gap-6 font-sans">
-      {/* Header & Overall Summary */}
-      <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 lg:p-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-emerald-500/10 to-indigo-500/5 rounded-full -translate-y-1/2 translate-x-1/3 blur-[5rem] pointer-events-none"></div>
+    <div className="w-full flex flex-col gap-8 font-sans mt-4">
+      
+      {/* SECTION 1: HERO STATS (Top Row) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-3">
-              <Calculator className="w-6 h-6 text-emerald-400" /> GPA Calculator
-            </h2>
-            <p className="text-gray-400 text-sm mt-1">Plan and predict your academic journey</p>
-          </div>
+        {/* Current CGPA Big Card */}
+        <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-[0_0_50px_-12px_rgba(16,185,129,0.2)] rounded-[32px] p-8 relative overflow-hidden flex flex-col justify-center h-full">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-500/20 to-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
           
-          <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-4 bg-black/40 p-4 rounded-2xl border border-white/5">
-            <div className="flex flex-col">
-              <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">Current CGPA</span>
-              <span className="text-2xl sm:text-3xl font-extrabold text-white">{calculatedData.currentCGPA.toFixed(2)}</span>
+          <div className="relative z-10 flex flex-col items-center sm:items-start text-center sm:text-left gap-4">
+            <h2 className="text-xl font-extrabold tracking-widest text-gray-400 uppercase flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-emerald-400" /> Current CGPA
+            </h2>
+            <div className="flex items-end gap-4">
+              <span className="text-7xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+                {calculatedData.currentCGPA.toFixed(2)}
+              </span>
+              <div className="flex flex-col pb-2">
+                <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">Credits</span>
+                <span className="text-2xl font-bold text-gray-300">{calculatedData.totalCredits}</span>
+              </div>
             </div>
-            <div className="w-px h-12 bg-white/10 mx-2 hidden sm:block"></div>
-            <div className="flex flex-col">
-              <span className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">Credits</span>
-              <span className="text-lg sm:text-xl font-bold text-gray-300">{calculatedData.totalCredits}</span>
-            </div>
-            <div className={`px-2 sm:px-4 py-2 rounded-xl border ${currentClass.bg} ${currentClass.border} flex flex-col items-center justify-center sm:ml-2 w-full sm:w-auto mt-2 sm:mt-0`}>
-              <Crown className={`w-4 h-4 sm:w-5 sm:h-5 ${currentClass.color}`} />
-              <span className={`text-[9px] sm:text-[10px] font-bold mt-1 uppercase text-center ${currentClass.color}`}>{currentClass.text}</span>
+            
+            <div className={`mt-2 px-6 py-2 rounded-full border ${currentClass.bg} ${currentClass.border} flex items-center gap-2 w-fit`}>
+              <Crown className={`w-4 h-4 ${currentClass.color}`} />
+              <span className={`text-xs font-bold uppercase tracking-widest ${currentClass.color}`}>{currentClass.text}</span>
             </div>
           </div>
         </div>
+
+        {/* Target GPA Predictor Card */}
+        <TargetGPAPredictor />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Subject Entry & List */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          
-          {/* Add Subjects Panel */}
-          <div className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-[32px] p-6">
-            <div className="flex bg-black/40 p-1.5 rounded-2xl w-fit border border-white/5 shadow-inner mb-6">
-              <button
-                onClick={() => setActiveTab('syllabus')}
-                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'syllabus' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
-              >
-                University Syllabus
-              </button>
-              <button
-                onClick={() => setActiveTab('custom')}
-                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'custom' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
-              >
-                Custom Subject
-              </button>
+      {/* SECTION 2: VISUAL ANALYTICS (Middle Row) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Subject Area Performance */}
+        <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 lg:p-8 relative h-fit flex flex-col">
+          <h3 className="font-extrabold text-lg text-white mb-6 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-indigo-400" /> Subject Area Performance
+          </h3>
+          {calculatedData.areaBreakdown.length > 0 ? (
+            <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              {calculatedData.areaBreakdown.map(area => (
+                <div key={area.prefix} className="flex flex-col gap-1.5">
+                  <div className="flex justify-between items-end">
+                    <div className="flex items-center gap-3">
+                      <span className="font-black text-sm text-white bg-white/10 px-2.5 py-1 rounded-lg border border-white/5">{area.prefix}</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{area.credits} Credits</span>
+                    </div>
+                    <span className="text-sm font-extrabold text-emerald-400">{area.gpa.toFixed(2)} GPA</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-[#23252b] rounded-full overflow-hidden mt-1">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${(area.gpa / 4.0) * 100}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className={`h-full rounded-full ${area.gpa >= 3.7 ? 'bg-emerald-500' : area.gpa >= 3.0 ? 'bg-blue-400' : 'bg-yellow-400'}`}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center py-10">
+              <p className="text-gray-500 text-sm">Add subjects to see your area breakdown.</p>
+            </div>
+          )}
+        </div>
 
-            {activeTab === 'syllabus' ? (
-              <div className="flex flex-col gap-4 animate-in fade-in duration-300">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Level</label>
-                    <select 
-                      value={selectedLevel}
-                      onChange={e => setSelectedLevel(Number(e.target.value))}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                    >
-                      <option value={1}>Level 1</option>
-                      <option value={2}>Level 2</option>
-                      <option value={3}>Level 3</option>
-                      <option value={4}>Level 4</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Semester</label>
-                    <select 
-                      value={selectedSemester}
-                      onChange={e => setSelectedSemester(Number(e.target.value))}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                    >
-                      <option value={1}>Semester I</option>
-                      <option value={2}>Semester II</option>
-                    </select>
-                  </div>
-                </div>
-
-                {availableSyllabusSubjects.length > 0 ? (
-                  <div className="mt-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Select Subjects</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2">
-                      {availableSyllabusSubjects.map(sub => {
-                        const isChecked = selectedSyllabusCodes.includes(sub.code);
-                        // Check if already in active subjects
-                        const isAlreadyAdded = activeSubjects.some(a => a.code === sub.code);
-                        return (
-                          <label key={sub.code} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${isAlreadyAdded ? 'opacity-50 cursor-not-allowed bg-black/20 border-white/5' : isChecked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-black/20 border-[#2a2d36] hover:bg-white/5'}`}>
-                            <input 
-                              type="checkbox"
-                              disabled={isAlreadyAdded}
-                              checked={isChecked || isAlreadyAdded}
-                              onChange={(e) => {
-                                if (e.target.checked) setSelectedSyllabusCodes(prev => [...prev, sub.code]);
-                                else setSelectedSyllabusCodes(prev => prev.filter(c => c !== sub.code));
-                              }}
-                              className="mt-1 w-4 h-4 rounded border-gray-600 text-emerald-500 focus:ring-emerald-500/20 bg-black/50"
-                            />
-                            <div className="flex flex-col">
-                              <span className={`text-sm font-bold ${isChecked ? 'text-emerald-400' : 'text-gray-300'}`}>{sub.code}</span>
-                              <span className="text-[10px] text-gray-500 line-clamp-1">{sub.name}</span>
-                              <span className="text-[10px] font-bold text-gray-400 mt-0.5">{sub.credits} Credits</span>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    {selectedSyllabusCodes.length > 0 && (
-                      <button 
-                        onClick={handleAddSyllabusSubjects}
-                        className="mt-4 w-full bg-emerald-500 text-black py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors"
-                      >
-                        Add {selectedSyllabusCodes.length} Subjects
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="py-8 text-center text-gray-500 font-medium">
-                    No subjects found for Level {selectedLevel} Semester {selectedSemester}.
-                  </div>
-                )}
-              </div>
-            ) : (
-              <form onSubmit={handleAddCustomSubject} className="flex flex-col gap-4 animate-in fade-in duration-300">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="flex flex-col gap-1.5 md:col-span-2">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Subject Code/Name</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. CMIS 1113"
-                      value={customForm.name}
-                      onChange={e => setCustomForm({...customForm, name: e.target.value})}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Credits</label>
-                    <input 
-                      type="number" 
-                      min="1" max="12"
-                      value={customForm.credits}
-                      onChange={e => setCustomForm({...customForm, credits: Number(e.target.value)})}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Grade</label>
-                    <select 
-                      value={customForm.grade}
-                      onChange={e => setCustomForm({...customForm, grade: e.target.value as Grade})}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                    >
-                      <option value="">N/A</option>
-                      {Object.keys(GRADE_POINTS).map(g => (
-                        <option key={g} value={g}>{g}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Level</label>
-                    <select 
-                      value={customForm.level}
-                      onChange={e => setCustomForm({...customForm, level: Number(e.target.value)})}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                    >
-                      <option value={1}>Level 1</option>
-                      <option value={2}>Level 2</option>
-                      <option value={3}>Level 3</option>
-                      <option value={4}>Level 4</option>
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Semester</label>
-                    <select 
-                      value={customForm.semester}
-                      onChange={e => setCustomForm({...customForm, semester: Number(e.target.value)})}
-                      className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
-                    >
-                      <option value={1}>Semester I</option>
-                      <option value={2}>Semester II</option>
-                    </select>
-                  </div>
-                </div>
-
-                <button 
-                  type="submit"
-                  className="mt-2 w-full bg-emerald-500 text-black py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors"
-                >
-                  Add Custom Subject
-                </button>
-              </form>
-            )}
+        {/* GPA Trend Chart */}
+        <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 lg:p-8 relative h-fit flex flex-col">
+          <h3 className="font-extrabold text-lg text-white mb-6 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-blue-400" /> Performance Trend
+          </h3>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={calculatedData.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2a2d36" vertical={false} />
+                <XAxis dataKey="name" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis domain={[0, 4.0]} stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} tickCount={5} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#141618', borderColor: '#2a2d36', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
+                  itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                />
+                <Line type="monotone" dataKey="CGPA" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="MaxTrajectory" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-
-          {/* Active Subjects List by Semester */}
-          <div className="flex flex-col gap-4">
-            {calculatedData.semesterStats.length === 0 ? (
-              <div className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-[32px] p-10 text-center flex flex-col items-center">
-                <BookOpen className="w-12 h-12 text-gray-600 mb-4" />
-                <h3 className="text-lg font-bold text-gray-300">No Subjects Added Yet</h3>
-                <p className="text-gray-500 text-sm mt-2 max-w-sm">Use the panel above to add subjects from the syllabus or add your own custom subjects.</p>
-              </div>
-            ) : (
-              calculatedData.semesterStats.map(sem => (
-                <div key={sem.id} className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-3xl overflow-hidden">
-                  <div className="bg-black/20 p-4 border-b border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <h3 className="font-extrabold text-lg text-white">{sem.name}</h3>
-                      <div className="hidden sm:flex gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-md">
-                          SGPA: {sem.sgpa.toFixed(2)}
-                        </span>
-                        <span className="text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-1 rounded-md">
-                          CGPA: {sem.cgpa.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="p-4 flex flex-col gap-2">
-                    {sem.subjects.map(sub => (
-                      <div key={sub.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl transition-colors group">
-                        <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
-                          <span className="font-bold text-sm text-gray-200 min-w-[100px]">{sub.code || sub.name}</span>
-                          <span className="text-xs text-gray-500 flex-1 truncate">{sub.code ? sub.name : ''}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-gray-400 bg-black/40 px-2 py-1 rounded-md">{sub.credits} Crd</span>
-                          
-                          <select 
-                            value={sub.grade}
-                            onChange={(e) => updateSubjectGrade(sub.id, e.target.value as Grade)}
-                            className="bg-[#23252b] border border-[#2a2d36] text-white text-sm font-bold rounded-lg p-1.5 focus:outline-none focus:border-emerald-500/50 w-16"
-                          >
-                            <option value="">--</option>
-                            {Object.keys(GRADE_POINTS).map(g => (
-                              <option key={g} value={g}>{g}</option>
-                            ))}
-                          </select>
-                          
-                          <button 
-                            onClick={() => removeSubject(sub.id)}
-                            className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="flex items-center gap-4 justify-center mt-4 text-xs font-bold text-gray-400">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded-full bg-emerald-500"></div> Actual CGPA</div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded-full bg-blue-500 border-dashed border"></div> Max Possible</div>
           </div>
         </div>
 
-        {/* Right Column: Analytics */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden">
-            <h3 className="font-extrabold text-lg text-white mb-6 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-400" /> Performance Trend
-            </h3>
-            <div className="h-48 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={calculatedData.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2d36" vertical={false} />
-                  <XAxis dataKey="name" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis domain={[0, 4.0]} stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} tickCount={5} />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#141618', borderColor: '#2a2d36', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
-                    itemStyle={{ color: '#fff', fontWeight: 'bold' }}
-                  />
-                  <Line type="monotone" dataKey="CGPA" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
-                  <Line type="monotone" dataKey="MaxTrajectory" stroke="#3b82f6" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex items-center gap-4 justify-center mt-4 text-xs font-bold text-gray-400">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded-full bg-emerald-500"></div> Actual CGPA</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-1 rounded-full bg-blue-500 border-dashed border"></div> Max Possible</div>
-            </div>
+      </div>
+
+      {/* SECTION 3: SUBJECT MANAGEMENT & ENTRY (Bottom Row) */}
+      <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 lg:p-8 relative h-fit flex flex-col gap-8">
+        
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <h3 className="font-extrabold text-xl text-white flex items-center gap-2">
+            <BookOpen className="w-6 h-6 text-emerald-400" /> Subject Management
+          </h3>
+          <div className="flex bg-black/40 p-1.5 rounded-2xl w-fit border border-white/5 shadow-inner">
+            <button
+              onClick={() => setActiveTab('syllabus')}
+              className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'syllabus' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+            >
+              From Syllabus
+            </button>
+            <button
+              onClick={() => setActiveTab('custom')}
+              className={`px-6 py-2 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === 'custom' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+            >
+              Custom Subject
+            </button>
           </div>
+        </div>
 
-          <div className="bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden">
-            <h3 className="font-extrabold text-lg text-white mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-400" /> Target Predictor
-            </h3>
-            
-            <label className="flex items-center gap-3 p-3 rounded-2xl border border-[#2a2d36] bg-black/20 cursor-pointer mb-4 hover:bg-white/5 transition-colors">
-              <input 
-                type="checkbox" 
-                checked={predictive.active}
-                onChange={e => setPredictive({...predictive, active: e.target.checked})}
-                className="w-4 h-4 rounded border-gray-600 text-emerald-500 focus:ring-emerald-500/20 bg-black/50"
-              />
-              <span className="text-sm font-bold text-gray-300">Enable Predictor</span>
-            </label>
+        {/* Clean Glassmorphic Add Subject Area */}
+        <div className="bg-[#141618]/50 border border-white/[0.05] rounded-3xl p-6">
+          {activeTab === 'syllabus' ? (
+            <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Level</label>
+                  <select 
+                    value={selectedLevel}
+                    onChange={e => setSelectedLevel(Number(e.target.value))}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
+                  >
+                    <option value={1}>Level 1</option>
+                    <option value={2}>Level 2</option>
+                    <option value={3}>Level 3</option>
+                    <option value={4}>Level 4</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Semester</label>
+                  <select 
+                    value={selectedSemester}
+                    onChange={e => setSelectedSemester(Number(e.target.value))}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
+                  >
+                    <option value={1}>Semester I</option>
+                    <option value={2}>Semester II</option>
+                  </select>
+                </div>
+              </div>
 
-            <AnimatePresence>
-              {predictive.active && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="flex flex-col gap-4 overflow-hidden"
-                >
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex justify-between">
-                      Target Credits <span className="text-emerald-400">{predictive.targetCredits}</span>
-                    </label>
-                    <input 
-                      type="range" min="1" max="40" 
-                      value={predictive.targetCredits}
-                      onChange={e => setPredictive({...predictive, targetCredits: parseInt(e.target.value)})}
-                      className="w-full accent-emerald-500"
-                    />
+              {availableSyllabusSubjects.length > 0 ? (
+                <div className="mt-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Select Subjects to Add</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    {availableSyllabusSubjects.map(sub => {
+                      const isChecked = selectedSyllabusCodes.includes(sub.code);
+                      const isAlreadyAdded = safeSubjects.some(a => a.code === sub.code);
+                      return (
+                        <label key={sub.code} className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${isAlreadyAdded ? 'opacity-50 cursor-not-allowed bg-black/20 border-white/5' : isChecked ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-black/20 border-[#2a2d36] hover:bg-white/5'}`}>
+                          <input 
+                            type="checkbox"
+                            disabled={isAlreadyAdded}
+                            checked={isChecked || isAlreadyAdded}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedSyllabusCodes(prev => [...prev, sub.code]);
+                              else setSelectedSyllabusCodes(prev => prev.filter(c => c !== sub.code));
+                            }}
+                            className="mt-1 w-4 h-4 rounded border-gray-600 text-emerald-500 focus:ring-emerald-500/20 bg-black/50"
+                          />
+                          <div className="flex flex-col">
+                            <span className={`text-sm font-bold ${isChecked ? 'text-emerald-400' : 'text-gray-300'}`}>{sub.code}</span>
+                            <span className="text-[10px] text-gray-500 line-clamp-1">{sub.name}</span>
+                            <span className="text-[10px] font-bold text-gray-400 mt-0.5">{sub.credits} Credits</span>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-gray-500 uppercase flex justify-between">
-                      Target GPA <span className="text-emerald-400">{predictive.targetGPA.toFixed(2)}</span>
-                    </label>
-                    <input 
-                      type="range" min="2.0" max="4.0" step="0.1"
-                      value={predictive.targetGPA}
-                      onChange={e => setPredictive({...predictive, targetGPA: parseFloat(e.target.value)})}
-                      className="w-full accent-emerald-500"
-                    />
-                  </div>
-                  
-                  <div className="mt-2 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
-                    <span className="text-xs font-bold text-emerald-500/70 uppercase tracking-widest">Projected CGPA</span>
-                    <span className="text-3xl font-extrabold text-emerald-400 mt-1">{calculatedData.projectedCGPA.toFixed(2)}</span>
-                  </div>
-                </motion.div>
+                  {selectedSyllabusCodes.length > 0 && (
+                    <button 
+                      onClick={handleAddSyllabusSubjects}
+                      className="mt-4 px-8 bg-emerald-500 text-black py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors w-fit"
+                    >
+                      Add {selectedSyllabusCodes.length} Selected Subjects
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-gray-500 font-medium">
+                  No subjects found for Level {selectedLevel} Semester {selectedSemester}.
+                </div>
               )}
-            </AnimatePresence>
-          </div>
+            </div>
+          ) : (
+            <form onSubmit={handleAddCustomSubject} className="flex flex-col gap-4 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Subject Code/Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. CMIS 1113"
+                    value={customForm.name}
+                    onChange={e => setCustomForm({...customForm, name: e.target.value})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Credits</label>
+                  <input 
+                    type="number" 
+                    min="1" max="12"
+                    value={customForm.credits}
+                    onChange={e => setCustomForm({...customForm, credits: Number(e.target.value)})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Level</label>
+                  <select 
+                    value={customForm.level}
+                    onChange={e => setCustomForm({...customForm, level: Number(e.target.value)})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
+                  >
+                    <option value={1}>Lvl 1</option>
+                    <option value={2}>Lvl 2</option>
+                    <option value={3}>Lvl 3</option>
+                    <option value={4}>Lvl 4</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-gray-500 uppercase">Semester</label>
+                  <select 
+                    value={customForm.semester}
+                    onChange={e => setCustomForm({...customForm, semester: Number(e.target.value)})}
+                    className="w-full p-3 rounded-xl border border-[#2a2d36] bg-black/20 text-white shadow-sm font-medium focus:border-emerald-500/50 focus:outline-none"
+                  >
+                    <option value={1}>Sem I</option>
+                    <option value={2}>Sem II</option>
+                  </select>
+                </div>
+              </div>
+              
+              <button 
+                type="submit"
+                className="mt-2 w-fit px-8 bg-emerald-500 text-black py-3 rounded-xl font-bold hover:bg-emerald-400 transition-colors"
+              >
+                Add Custom Subject
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Active Subjects List by Semester (Accordion Style) */}
+        <div className="flex flex-col gap-4 mt-4">
+          <h4 className="font-extrabold text-sm text-gray-400 uppercase tracking-widest border-b border-[#2a2d36] pb-2 mb-2">My Enrolled Subjects</h4>
+          
+          {calculatedData.semesterStats.length === 0 ? (
+            <div className="bg-black/20 border border-dashed border-white/[0.08] rounded-[32px] p-10 text-center flex flex-col items-center">
+              <BookOpen className="w-12 h-12 text-gray-600 mb-4" />
+              <h3 className="text-lg font-bold text-gray-400">No Subjects Added Yet</h3>
+              <p className="text-gray-500 text-sm mt-2 max-w-sm">Use the panel above to add subjects to your record.</p>
+            </div>
+          ) : (
+            calculatedData.semesterStats.map(sem => (
+              <details key={sem.id} className="group bg-[#141618]/80 backdrop-blur-xl border border-white/[0.08] rounded-3xl overflow-hidden [&_summary::-webkit-details-marker]:hidden" open>
+                <summary className="bg-black/20 p-5 border-b border-white/5 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <h3 className="font-extrabold text-lg text-white">{sem.name}</h3>
+                    <div className="flex gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-2 py-1 rounded-md">
+                        SGPA: {sem.sgpa.toFixed(2)}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-1 rounded-md hidden sm:block">
+                        CGPA: {sem.cgpa.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500 transition-transform group-open:rotate-90" />
+                </summary>
+                
+                <div className="p-2 sm:p-4 flex flex-col gap-1">
+                  {sem.subjects.map(sub => (
+                    <div key={sub.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 hover:bg-white/5 rounded-2xl transition-colors group/item border border-transparent hover:border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-black/40 border border-white/5 flex items-center justify-center font-black text-xs text-emerald-400 shrink-0">
+                          {sub.credits}C
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-sm text-gray-200">{sub.code || sub.name}</span>
+                          {sub.code && <span className="text-[11px] text-gray-500">{sub.name}</span>}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto mt-2 sm:mt-0 pl-12 sm:pl-0">
+                        <select 
+                          value={sub.grade}
+                          onChange={(e) => updateSubjectGrade(sub.id, e.target.value as Grade)}
+                          className="bg-[#23252b] border border-[#2a2d36] text-white text-sm font-bold rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500/50 w-20 shadow-inner"
+                        >
+                          <option value="">--</option>
+                          {Object.keys(GRADE_POINTS).map(g => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+
+                        {sub.grade && sub.credits > 0 ? (
+                          <div className="flex flex-col items-end min-w-[50px]">
+                            <span className="text-sm font-extrabold text-emerald-400">
+                              {(GRADE_POINTS[sub.grade as keyof typeof GRADE_POINTS] * sub.credits).toFixed(1)}
+                            </span>
+                            <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Points</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-end min-w-[50px]">
+                            <span className="text-sm font-bold text-gray-600">-</span>
+                            <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest">Points</span>
+                          </div>
+                        )}
+                        
+                        <button 
+                          onClick={() => removeSubject(sub.id)}
+                          className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-colors sm:opacity-0 sm:group-hover/item:opacity-100"
+                          title="Remove Subject"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))
+          )}
         </div>
 
       </div>
     </div>
   );
+
 }

@@ -1,11 +1,21 @@
 "use client";
 
+import { PageHeader } from "@/components/PageHeader";
+import { Wallet } from "lucide-react";
 import { useAppStore, P2PDebt, Payment, User } from "@/store";
 import { format } from "date-fns";
 import { CheckCircle2, Edit2, Plus, Trash2, WalletCards, ArrowRightLeft, Coins, X } from "lucide-react";
 import Image from "next/image";
 import { useState, useMemo, useEffect } from "react";
 import { BoardingFeeTracker } from "@/components/BoardingFeeTracker";
+import { MyWalletCard } from "@/components/MyWalletCard";
+import { TransactionEntry } from "@/components/TransactionEntry";
+import { BudgetTracker } from "@/components/BudgetTracker";
+import { DebtManager } from "@/components/DebtManager";
+import { DailyExpenseWidget } from "@/components/DailyExpenseWidget";
+import { PersonalFinanceDashboard } from "@/components/PersonalFinanceDashboard";
+import { NetWorthSummary } from "@/components/NetWorthSummary";
+import { FinancialGoals } from "@/components/FinancialGoals";
 import { motion } from "framer-motion";
 import { calculateNetBalances } from "@/lib/financeUtils";
 
@@ -26,6 +36,7 @@ export default function FinancePage() {
   const [partialPaymentDirection, setPartialPaymentDirection] = useState<'from_me' | 'to_me'>('from_me');
   const [partialPaymentAmount, setPartialPaymentAmount] = useState<number>(0);
   
+  const [mainTab, setMainTab] = useState<'shared' | 'personal'>('shared');
   const [activeTab, setActiveTab] = useState<'balances' | 'ledger'>('balances');
 
   const [formData, setFormData] = useState({
@@ -132,41 +143,63 @@ export default function FinancePage() {
   }, [isAdding, partialPaymentTargetId]);
 
   return (
-    <div className="w-full h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">Financial Tracker</h1>
-          <p className="text-gray-400 mt-1">Manage peer-to-peer debts and monthly boarding fees.</p>
-        </div>
+    <div className="w-full min-h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+      <PageHeader 
+        title="Finance Manager"
+        icon={Wallet}
+        description="Manage shared group debts, boarding fees, and your personal expenses."
+        actionButton={
+          mainTab === 'shared' && (
+            <button 
+              onClick={() => { 
+                if (!isAdding) setActiveTab('ledger');
+                setIsAdding(!isAdding); 
+                setEditingId(null); 
+              }}
+              className="flex items-center gap-2 bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-400 transition-all hover:-translate-y-0.5"
+            >
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">{isAdding ? 'Cancel Entry' : 'Add Transaction'}</span>
+            </button>
+          )
+        }
+      />
+
+      <div className="flex items-center gap-8 border-b border-white/5 mb-6 w-full">
         <button 
-          onClick={() => { 
-            if (!isAdding) setActiveTab('ledger');
-            setIsAdding(!isAdding); 
-            setEditingId(null); 
-          }}
-          className="flex items-center gap-2 bg-emerald-500 text-black px-5 py-2.5 rounded-xl font-bold shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-400 transition-all hover:-translate-y-0.5"
+          onClick={() => setMainTab('shared')} 
+          className={`pb-3 text-sm font-bold transition-colors relative ${mainTab === 'shared' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
         >
-          {isAdding ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-          {isAdding ? 'Cancel' : 'Add Expense'}
+          Shared Expenses
+          {mainTab === 'shared' && <motion.div layoutId="financeMainTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-emerald-500 rounded-t-full" />}
+        </button>
+        <button 
+          onClick={() => setMainTab('personal')} 
+          className={`pb-3 text-sm font-bold transition-colors relative ${mainTab === 'personal' ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          Personal Finance
+          {mainTab === 'personal' && <motion.div layoutId="financeMainTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full" />}
         </button>
       </div>
 
-      <div className="flex bg-[#131418] border border-white/5 p-1 rounded-full w-fit mb-2">
-        <button 
-          onClick={() => setActiveTab('balances')} 
-          className={`px-6 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'balances' ? 'bg-[#00ff9d]/10 text-[#00ff9d]' : 'text-white/50 hover:text-white/80'}`}
-        >
-          Personal Balances
-        </button>
-        <button 
-          onClick={() => setActiveTab('ledger')} 
-          className={`px-6 py-2 text-sm font-medium rounded-full transition-all ${activeTab === 'ledger' ? 'bg-[#00ff9d]/10 text-[#00ff9d]' : 'text-white/50 hover:text-white/80'}`}
-        >
-          Expense History
-        </button>
-      </div>
+      {mainTab === 'shared' ? (
+        <>
+          <div className="flex bg-black/40 border border-white/5 p-1.5 rounded-2xl w-fit mb-6 shadow-inner">
+            <button 
+              onClick={() => setActiveTab('balances')} 
+              className={`px-6 py-2 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'balances' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+            >
+              Group Balances
+            </button>
+            <button 
+              onClick={() => setActiveTab('ledger')} 
+              className={`px-6 py-2 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'ledger' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+            >
+              Shared Ledger
+            </button>
+          </div>
 
-      <div className="w-full">
+          <div className="w-full">
         {activeTab === 'balances' && (
         <motion.div 
           initial={{ opacity: 0, y: 50, scale: 0.95 }} 
@@ -444,9 +477,36 @@ export default function FinancePage() {
           </div>
         </motion.div>
         )}
-      </div>
+          </div>
+        </>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full flex flex-col gap-6"
+        >
+          <div className="w-full">
+            <NetWorthSummary />
+          </div>
+          
+          <div className="flex flex-col lg:flex-row gap-6 items-start">
+            <div className="flex-1 flex flex-col gap-6">
+              <MyWalletCard />
+              <FinancialGoals />
+              <TransactionEntry />
+            </div>
+            
+            <div className="w-full lg:w-[40%] flex flex-col gap-6">
+              <DailyExpenseWidget />
+              <BudgetTracker />
+              <DebtManager />
+              <PersonalFinanceDashboard />
+            </div>
+          </div>
+        </motion.div>
+      )}
 
-      {isAdding && (
+      {isAdding && mainTab === 'shared' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-[#141618]/90 backdrop-blur-2xl shadow-2xl rounded-3xl p-6 md:p-8 border border-[#2a2d36] max-w-lg w-full animate-in zoom-in-95 duration-200 relative">
             <button 
@@ -550,7 +610,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      <BoardingFeeTracker />
+      {mainTab === 'shared' && <BoardingFeeTracker />}
 
     </div>
   );

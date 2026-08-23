@@ -1,5 +1,7 @@
 "use client";
 
+import { PageHeader } from "@/components/PageHeader";
+import { CalendarDays } from "lucide-react";
 import { useAppStore } from "@/store";
 import { CheckCircle2, Users, Brush, Droplets, Bath, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import Image from "next/image";
@@ -32,35 +34,35 @@ export default function RosterPage() {
   return (
     <div className="w-full h-full flex flex-col gap-6 pb-10">
       
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Weekly Roster</h1>
-          <p className="text-muted-foreground mt-1">Mathematically fair deterministic scheduling.</p>
-        </div>
+      <PageHeader
+        title="Weekly Roster"
+        icon={CalendarDays}
+        description="Mathematically fair deterministic scheduling."
+        actionButton={
+          <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full px-2 py-1 shadow-sm backdrop-blur-md">
+            <button 
+              onClick={() => setCurrentDate(subWeeks(currentDate, 1))}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            
+            <div className="flex items-center gap-2 px-2 text-sm font-bold text-white min-w-[140px] justify-center">
+              <Calendar className="w-4 h-4 text-emerald-400" />
+              <span className="tracking-tight">
+                {format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')} - {format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')}
+              </span>
+            </div>
 
-        <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-full px-2 py-1 shadow-sm backdrop-blur-md">
-          <button 
-            onClick={() => setCurrentDate(subWeeks(currentDate, 1))}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center gap-2 px-2 text-sm font-bold text-white min-w-[140px] justify-center">
-            <Calendar className="w-4 h-4 text-emerald-400" />
-            <span className="tracking-tight">
-              {format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')} - {format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')}
-            </span>
+            <button 
+              onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
+              className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
-
-          <button 
-            onClick={() => setCurrentDate(addWeeks(currentDate, 1))}
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
