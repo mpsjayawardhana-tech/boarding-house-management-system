@@ -23,7 +23,7 @@ export function DashboardNoticeBoard({ isEditMode }: DashboardNoticeBoardProps) 
   }, [notices]);
 
   return (
-    <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 md:p-8 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden min-h-[350px] h-full">
+    <div className="bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 md:p-8 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden min-h-[350px] h-full">
       {isEditMode && <div className="absolute top-4 left-4 z-20 p-2 bg-white/10 rounded-full cursor-grab active:cursor-grabbing text-white/50 hover:text-white transition-colors"><GripVertical className="w-5 h-5" /></div>}
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#00ff9d]/10 to-blue-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
       

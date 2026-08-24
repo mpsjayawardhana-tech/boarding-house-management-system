@@ -80,7 +80,7 @@ export function DashboardDebtWidget() {
   };
 
   return (
-    <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl relative flex flex-col h-full max-h-[380px]">
+    <div className="bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 shadow-2xl relative flex flex-col h-full max-h-[380px]">
       <div className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-full blur-[3rem] pointer-events-none"></div>
       
       {/* Header */}

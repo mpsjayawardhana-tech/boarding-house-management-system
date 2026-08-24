@@ -8,6 +8,7 @@ import { HydrationGuard } from "@/components/HydrationGuard";
 
 const UndoToast = dynamic(() => import("@/components/UndoToast").then(mod => mod.UndoToast), { ssr: false });
 const ImpersonationBanner = dynamic(() => import("@/components/ImpersonationBanner").then(mod => mod.ImpersonationBanner), { ssr: false });
+const MobileBottomNav = dynamic(() => import("@/components/MobileBottomNav").then(mod => mod.MobileBottomNav), { ssr: false });
 
 export const metadata: Metadata = {
   title: "Bodima",
@@ -47,10 +48,11 @@ export default function RootLayout({
             <ScrollReset />
             <TopNav />
             
-            <main id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-hide px-4 md:px-8 w-full">
+            <main id="main-scroll-container" className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth scrollbar-hide px-0 md:px-8 w-full">
               {children}
             </main>
             
+            <MobileBottomNav />
             <UndoToast />
           </GlobalAuthGuard>
         </HydrationGuard>

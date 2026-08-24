@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { ComposedChart, Area, Line, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAppStore } from '@/store';
 import { getISOWeek, startOfMonth, addWeeks } from 'date-fns';
 
@@ -21,43 +21,76 @@ export function PerformanceGraph() {
     if (!currentUser) return [];
 
     const today = new Date();
-    const monthStart = startOfMonth(today);
-    const weeksData = [];
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    const assignedCounts = [0, 0, 0, 0];
+    const completedCounts = [0, 0, 0, 0];
 
-    for (let i = 0; i < 4; i++) {
-      const weekDate = addWeeks(monthStart, i);
-      const weekNum = getISOWeek(weekDate);
+    // Generate schedule for dates covering the entire month
+    const datesToQuery = [];
+    for (let d = 1; d <= daysInMonth; d += 7) {
+      datesToQuery.push(new Date(currentYear, currentMonth, d));
+    }
+    datesToQuery.push(new Date(currentYear, currentMonth, daysInMonth));
+
+    const processedTaskIds = new Set<string>();
+
+    datesToQuery.forEach(date => {
+      const schedule = generateDeterministicSchedule(date, users, rosterConfig, completedTasksHistory, upcomingSwaps || []);
       
-      const pastHistory = completedTasksHistory.filter(t => t.completedAt && new Date(t.completedAt) < weekDate);
-      const schedule = generateDeterministicSchedule(weekDate, users, rosterConfig, pastHistory, upcomingSwaps || []);
-      
-      let assignedCount = 0;
       schedule.forEach(day => {
         day.tasks.forEach(task => {
-          if (task.assigneeIds.includes(currentUser.id)) {
-            assignedCount++;
+          if (processedTaskIds.has(task.id)) return;
+          processedTaskIds.add(task.id);
+          
+          const dateMatch = task.id.match(/\d{4}-\d{2}-\d{2}$/);
+          if (dateMatch) {
+            const [y, m, d] = dateMatch[0].split('-');
+            const taskDate = new Date(Number(y), Number(m)-1, Number(d));
+            
+            // Only care about tasks in the current month
+            if (taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear) {
+              const dayOfMonth = taskDate.getDate();
+              // Bin 0 (W1): 1-7, Bin 1 (W2): 8-14, Bin 2 (W3): 15-21, Bin 3 (W4): 22+
+              const binIndex = Math.min(Math.floor((dayOfMonth - 1) / 7), 3);
+              
+              if (task.assigneeIds.includes(currentUser.id)) {
+                assignedCounts[binIndex]++;
+              }
+            }
           }
         });
       });
+    });
 
-      let completedCount = 0;
-      completedTasksHistory.forEach(task => {
-        if (task.actualAssigneeIds?.includes(currentUser.id) && task.completedAt) {
-           const taskDate = new Date(task.completedAt);
-           if (getISOWeek(taskDate) === weekNum) {
-             completedCount++;
-           }
+    completedTasksHistory.forEach(task => {
+      if (task.actualAssigneeIds?.includes(currentUser.id)) {
+        const dateMatch = task.id.match(/\d{4}-\d{2}-\d{2}$/);
+        if (dateMatch) {
+          const [y, m, d] = dateMatch[0].split('-');
+          const taskDate = new Date(Number(y), Number(m)-1, Number(d));
+          if (taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear) {
+            const dayOfMonth = taskDate.getDate();
+            const binIndex = Math.min(Math.floor((dayOfMonth - 1) / 7), 3);
+            completedCounts[binIndex]++;
+          }
         }
-      });
+      }
+    });
 
-      weeksData.push({
+    return [0, 1, 2, 3].map(i => {
+      const assigned = assignedCounts[i];
+      const completed = completedCounts[i];
+      const percentage = assigned > 0 ? Math.round((completed / assigned) * 100) : 0;
+      return {
         name: `W${i + 1}`,
-        assigned: assignedCount,
-        completed: completedCount
-      });
-    }
-
-    return weeksData;
+        assigned,
+        completed,
+        percentage
+      };
+    });
   }, [currentUser, completedTasksHistory, rosterConfig, users, upcomingSwaps]);
 
   if (!isMounted || !currentUser) return null;
@@ -68,8 +101,8 @@ export function PerformanceGraph() {
         <ComposedChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#e2e8f0" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#e2e8f0" stopOpacity={0} />
+              <stop offset="5%" stopColor="#00ff9d" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#00ff9d" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis 
@@ -79,6 +112,7 @@ export function PerformanceGraph() {
             tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }} 
             dy={10}
           />
+          <YAxis hide={true} domain={[0, 100]} />
           <Tooltip 
             contentStyle={{ backgroundColor: '#141618', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#fff', fontWeight: 500, fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif" }}
             itemStyle={{ color: '#fff' }}
@@ -87,23 +121,15 @@ export function PerformanceGraph() {
           
           <Area 
             type="monotone" 
-            dataKey="completed" 
-            stroke="#e2e8f0" 
+            dataKey="percentage" 
+            stroke="#00ff9d" 
             strokeWidth={3}
             fillOpacity={1} 
             fill="url(#colorCompleted)" 
-            name="Completed"
-            activeDot={{ r: 6, fill: '#e2e8f0', stroke: '#141618', strokeWidth: 2, style: { filter: 'drop-shadow(0 0 8px rgba(226,232,240,0.3))' } }}
+            name="Completion %"
+            activeDot={{ r: 6, fill: '#00ff9d', stroke: '#141618', strokeWidth: 2, style: { filter: 'drop-shadow(0 0 8px rgba(0,255,157,0.3))' } }}
           />
-          <Line 
-            type="monotone" 
-            dataKey="assigned" 
-            stroke="#64748b" 
-            strokeDasharray="3 3" 
-            strokeWidth={2}
-            dot={false}
-            name="Assigned"
-          />
+
         </ComposedChart>
       </ResponsiveContainer>
     </div>

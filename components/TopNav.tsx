@@ -129,18 +129,30 @@ export function TopNav() {
         width: isScrolled ? "auto" : "100%",
         minWidth: isScrolled ? "200px" : "auto",
         y: isScrolled ? 0 : 0,
-        backgroundColor: isScrolled ? "rgba(11, 12, 14, 0.9)" : "transparent",
-        backdropFilter: isScrolled ? "blur(24px)" : "blur(0px)",
-        border: isScrolled ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
-        boxShadow: isScrolled ? "0 25px 50px -12px rgba(0, 0, 0, 0.25)" : "none",
+        backgroundColor: isScrolled && pathname !== '/' ? "rgba(11, 12, 14, 0.9)" : "transparent",
+        backdropFilter: isScrolled && pathname !== '/' ? "blur(24px)" : "blur(0px)",
+        border: isScrolled && pathname !== '/' ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+        boxShadow: isScrolled && pathname !== '/' ? "0 25px 50px -12px rgba(0, 0, 0, 0.25)" : "none",
       }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       className={`mx-4 md:mx-8 mt-4 mb-4 px-6 flex items-center justify-between z-50 ${isScrolled ? 'fixed top-4 left-1/2 -translate-x-1/2 rounded-full h-14' : 'sticky top-4 h-16 rounded-full'}`}
     >
-      {/* Left: Logo */}
+      {/* Left: Mobile Profile Picture */}
+      {pathname !== '/' && (
+        <div className="md:hidden flex items-center">
+          <button 
+            onClick={() => setProfileModalOpen(true)}
+            className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-500/20 shrink-0"
+          >
+            <Image src={currentUser?.avatar || '/default-avatar.png'} alt="Profile" fill className="object-cover" />
+          </button>
+        </div>
+      )}
+
+      {/* Left: Logo (Desktop Only) */}
       <motion.div 
         layout
-        className="flex items-center gap-3"
+        className="hidden md:flex items-center gap-3"
       >
         <Image src="/bodimalogo.png" alt="Bodima Logo" width={isScrolled ? 70 : 85} height={24} className="invert opacity-90 object-contain" />
       </motion.div>
@@ -155,8 +167,8 @@ export function TopNav() {
         })}
       </motion.nav>
 
-      {/* Right: User Controls (Desktop) */}
-      <motion.div layout className="hidden md:flex items-center gap-4 md:mr-6 lg:mr-10">
+      {/* Right: User Controls (Desktop & Mobile) */}
+      <motion.div layout className="flex items-center gap-4 ml-auto md:ml-0 md:mr-6 lg:mr-10">
 
         {/* Notifications */}
         <div className="relative" ref={dropdownRef}>
@@ -215,8 +227,8 @@ export function TopNav() {
           )}
         </div>
 
-        {/* Profile Picture & Dropdown */}
-        <div className="relative" ref={profileDropdownRef}>
+        {/* Profile Picture & Dropdown (Desktop Only) */}
+        <div className="hidden md:block relative" ref={profileDropdownRef}>
           <button 
             onClick={() => setShowProfileDropdown(!showProfileDropdown)}
             className="relative w-9 h-9 rounded-full overflow-hidden border-2 border-transparent hover:border-emerald-500/50 transition-all shrink-0"
@@ -283,81 +295,7 @@ export function TopNav() {
         </div>
       </motion.div>
 
-      {/* Mobile Menu Button */}
-      <button 
-        className="md:hidden p-2 text-gray-400 hover:text-white"
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      >
-        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-      </button>
     </motion.header>
-
-    {/* Mobile Full Screen Menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            transition={{ duration: 0.2 }}
-            className="fixed inset-x-0 top-[70px] bottom-0 z-[999] bg-[#090A0C]/95 backdrop-blur-3xl flex flex-col p-6 overflow-y-auto md:hidden border-t border-white/10 shadow-2xl"
-          >
-            <nav className="flex flex-col gap-4 mb-10">
-            {links.map((link) => {
-              if (link.name === "Settings" && currentUser?.name?.toLowerCase() !== 'manusha') return null;
-              const isActive = pathname === link.href;
-              
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  scroll={false}
-                  onClick={() => {
-                    handleNavClick();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className={`text-2xl font-light py-4 border-b border-[#2a2d36] transition-colors ${
-                    isActive ? 'text-white' : 'text-gray-500'
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="mt-auto flex flex-col gap-6">
-            {/* Mobile Notifications (In-line expansion) */}
-            {showNotifications && (
-              <div className="bg-[#1A1C1E] border border-[#2a2d36] rounded-2xl flex flex-col overflow-hidden animate-in fade-in">
-                <div className="p-3 border-b border-[#2a2d36]">
-                  <h3 className="font-sans font-bold text-white text-sm">Notifications</h3>
-                </div>
-                <div className="flex flex-col max-h-60 overflow-y-auto">
-                  {upcomingTasks.length > 0 ? (
-                    upcomingTasks.map((task, idx) => (
-                      <div key={`${task.id}-${idx}`} className="flex items-center gap-3 p-3 border-b border-[#2a2d36]/50 last:border-0">
-                        <div className="bg-[#121415] p-1.5 rounded-lg border border-[#2a2d36] shrink-0">
-                          {task.type === 'sweep' ? <Brush size={14} className="text-[#00ff9d]" /> : task.type === 'mop' ? <Droplets size={14} className="text-[#00ff9d]" /> : <Bath size={14} className="text-[#00ff9d]" />}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-white">{task.title} on {task.day}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-4 text-center">
-                      <p className="text-gray-400 font-mono text-xs">No upcoming duties.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-          </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }

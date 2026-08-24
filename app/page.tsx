@@ -2,6 +2,7 @@
 
 import { Users, CreditCard, LayoutDashboard, Calendar as CalendarIcon, Clock, CheckCircle2, ChevronRight, AlertCircle, Brush, Droplets, Bath, Check, X, TrendingUp } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { MobileAnimatedHero } from "@/components/MobileAnimatedHero";
 import Link from "next/link";
 import Image from "next/image";
 import { useAppStore } from "@/store";
@@ -31,7 +32,9 @@ export default function Dashboard() {
     rosterConfig = { activeDays: [], tasks: [] }, 
     upcomingSwaps = [],
     updateUser,
-    removeUser
+    removeUser,
+    completeTask,
+    undoTaskCompletion
   } = useAppStore();
   
   const currentUser = users.find(u => u.id === currentUserId);
@@ -55,22 +58,25 @@ export default function Dashboard() {
   const displayDayName = todaysSchedule?.dayName || todayName;
 
   return (
-    <div className="w-full flex flex-col gap-6 pb-10 overflow-x-hidden">
-      <PageHeader 
-        title="Dashboard" 
-        icon={LayoutDashboard} 
-        description="Overview of your boarding house activities and daily tasks."
-        actionButton={<div className="w-fit"><DailyExpenseWidget /></div>}
-      />
+    <div className="w-full flex flex-col pb-32 overflow-x-hidden relative">
+      <MobileAnimatedHero />
+      <div className="hidden md:block">
+        <PageHeader 
+          title="Dashboard" 
+          icon={LayoutDashboard} 
+          description="Overview of your boarding house activities and daily tasks."
+          actionButton={<div className="w-fit"><DailyExpenseWidget /></div>}
+        />
+      </div>
 
       {currentUser.role === 'admin' && pendingRequests.length > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-6">
+        <div className="bg-amber-500/10 border-y md:border-x border-amber-500/20 md:rounded-3xl p-6 relative z-10 mb-4 w-full">
           <h2 className="text-lg font-bold text-amber-400 mb-4 flex items-center gap-2">
             <AlertCircle className="w-5 h-5" /> Pending Join Requests ({pendingRequests.length})
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
             {pendingRequests.map(reqUser => (
-              <div key={reqUser.id} className="bg-black/40 border border-[#2a2d36] p-4 rounded-2xl flex items-center justify-between">
+              <div key={reqUser.id} className="bg-black/40 border border-[#2a2d36] p-4 rounded-2xl flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
                   <Image src={reqUser.avatar} alt={reqUser.name} width={40} height={40} className="rounded-full bg-[#23252b]" />
                   <div className="flex flex-col">
@@ -88,19 +94,19 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Top Row: Hero (Finance Graph) */}
-      <div className="w-full">
+      <div className="hidden md:block w-full sticky top-0 z-10 transition-all duration-300 shadow-2xl">
         <DashboardFinanceHero />
       </div>
 
-      {/* Middle Row: Academics, Compact Duties, Timetable */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
-        
+      <div className="relative z-20 bg-[#0a0a0a] md:bg-transparent rounded-t-[2.5rem] md:rounded-none mt-[-3rem] md:mt-0 pt-8 pb-32 md:pb-0 px-0 md:px-0 shadow-[0_-15px_40px_rgba(0,0,0,0.5)] md:shadow-none min-h-screen flex flex-col gap-6">
+      
+        {/* Middle Row: Academics, Compact Duties, Timetable */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start w-full">
         {/* Academics Widget */}
         <DashboardAcademicWidget />
 
         {/* Compact My Task Completion */}
-        <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl relative overflow-hidden h-full flex flex-col">
+        <div className="bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 shadow-2xl relative overflow-hidden h-full flex flex-col">
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#00ff9d]/10 to-blue-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[2rem] pointer-events-none"></div>
           <h3 className="text-[10px] uppercase tracking-widest font-extrabold text-white mb-4 border-b border-[#2a2d36] pb-2">My Task Completion</h3>
           <div className="flex-1 w-full relative min-h-[140px]"><PerformanceGraph /></div>
@@ -110,7 +116,7 @@ export default function Dashboard() {
         </div>
 
         {/* Compact Today's Duties */}
-        <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl relative flex flex-col h-full max-h-[350px]">
+        <div className="bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 shadow-2xl relative flex flex-col h-full max-h-[350px]">
           <div className="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-br from-[#00ff9d]/10 to-teal-500/5 rounded-full blur-[3rem] pointer-events-none"></div>
           <div className="relative z-10 flex justify-between items-center mb-4 border-b border-[#2a2d36] pb-2">
             <h3 className="text-[10px] uppercase tracking-widest font-extrabold text-white">Today&apos;s Duties</h3>
@@ -122,13 +128,28 @@ export default function Dashboard() {
                  <p className="text-gray-500 text-xs font-medium">No duties today.</p>
                </div>
             ) : todaysTasks.map(task => (
-              <div key={task.id} className="flex flex-col gap-2 p-3 rounded-xl bg-black/20 border border-[#2a2d36] hover:bg-white/5 transition-colors">
+              <div 
+                key={task.id} 
+                onClick={() => {
+                  if (!task.assigneeIds.includes(currentUser.id) && currentUser.role !== 'admin') return;
+                  if (task.isCompleted) {
+                    undoTaskCompletion(task);
+                  } else {
+                    completeTask(task, task.assigneeIds);
+                  }
+                }}
+                className={`flex flex-col gap-2 p-3 rounded-xl border transition-colors cursor-pointer ${
+                  task.isCompleted 
+                    ? 'bg-emerald-500/5 border-emerald-500/20 hover:bg-emerald-500/10' 
+                    : 'bg-black/20 border-[#2a2d36] hover:bg-white/5'
+                }`}
+              >
                 <div className="flex justify-between items-center">
                   <h4 className="font-bold text-white uppercase tracking-wider text-[11px] flex items-center gap-2">
-                    {task.title.includes('Sweep') ? <Brush className="w-3.5 h-3.5 text-gray-400" /> : task.title.includes('Mop') ? <Droplets className="w-3.5 h-3.5 text-gray-400" /> : <Bath className="w-3.5 h-3.5 text-gray-400" />}
+                    {task.title.includes('Sweep') ? <Brush className={`w-3.5 h-3.5 ${task.isCompleted ? 'text-emerald-500' : 'text-gray-400'}`} /> : task.title.includes('Mop') ? <Droplets className={`w-3.5 h-3.5 ${task.isCompleted ? 'text-emerald-500' : 'text-gray-400'}`} /> : <Bath className={`w-3.5 h-3.5 ${task.isCompleted ? 'text-emerald-500' : 'text-gray-400'}`} />}
                     {task.title}
                   </h4>
-                  {task.isCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
+                  {task.isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.5)]" />}
                 </div>
                 <div className="flex items-center -space-x-2">
                   {(task.isCompleted ? task.actualAssigneeIds : task.assigneeIds)?.map((id) => {
@@ -149,7 +170,7 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Row: Notice Board, Timetable & Debts */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start w-full">
         <div className="lg:col-span-2">
           <DashboardNoticeBoard isEditMode={false} />
         </div>
@@ -159,6 +180,9 @@ export default function Dashboard() {
         <div className="lg:col-span-1">
           <DashboardDebtWidget />
         </div>
+      </div>
+      
+      {/* End Overlap Container */}
       </div>
       
     </div>

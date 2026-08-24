@@ -303,7 +303,7 @@ export default function AcademicsPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="w-full flex flex-col gap-6 pb-10 overflow-x-hidden"
+      className="w-full flex flex-col pb-32 overflow-x-hidden relative"
     >
       <PageHeader
         title="Academics"
@@ -319,10 +319,10 @@ export default function AcademicsPage() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start w-full">
         
         {/* Left Column: Today's Schedule */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="lg:col-span-2 flex flex-col gap-6 w-full">
           <div className="bg-[#0B0C0E] border border-white/[0.08] shadow-2xl rounded-[32px] p-6 relative overflow-hidden h-fit">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-500/10 to-purple-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
             

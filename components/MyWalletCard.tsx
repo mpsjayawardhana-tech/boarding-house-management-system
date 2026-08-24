@@ -24,7 +24,7 @@ export function MyWalletCard() {
   };
 
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 shadow-lg shadow-black/20 rounded-xl p-6 lg:p-8 relative overflow-hidden h-fit">
+    <div className="bg-[#0B0C0E] border-b md:border border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] rounded-b-[2.5rem] md:rounded-xl p-6 lg:p-8 relative overflow-hidden h-fit z-20">
       <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-500/10 to-purple-500/5 rounded-full -translate-y-1/3 translate-x-1/3 blur-[4rem] pointer-events-none"></div>
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">

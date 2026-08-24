@@ -20,7 +20,7 @@ export function DashboardFinanceHero() {
   const closeModal = () => setActiveModal(null);
 
   return (
-    <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 lg:p-8 shadow-2xl relative overflow-hidden flex flex-col h-fit w-full">
+    <div className="bg-[#0B0C0E] border-b md:border border-white/[0.08] rounded-b-[2.5rem] md:rounded-[32px] p-6 lg:p-8 shadow-2xl relative overflow-hidden flex flex-col h-fit w-full z-20">
       
       {/* Header */}
       <div className="mb-6 relative z-10">

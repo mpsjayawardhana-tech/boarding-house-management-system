@@ -143,9 +143,9 @@ export default function FinancePage() {
   }, [isAdding, partialPaymentTargetId]);
 
   return (
-    <div className="w-full min-h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="w-full flex flex-col pb-32 overflow-x-hidden relative min-h-screen">
       <PageHeader 
-        title="Finance Manager"
+        title="Finance" 
         icon={Wallet}
         description="Manage shared group debts, boarding fees, and your personal expenses."
         actionButton={
@@ -165,7 +165,7 @@ export default function FinancePage() {
         }
       />
 
-      <div className="flex items-center gap-8 border-b border-white/5 mb-6 w-full">
+      <div className="flex items-center gap-8 border-b border-white/5 mb-6 w-full px-6">
         <button 
           onClick={() => setMainTab('shared')} 
           className={`pb-3 text-sm font-bold transition-colors relative ${mainTab === 'shared' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
@@ -183,7 +183,7 @@ export default function FinancePage() {
       </div>
 
       {mainTab === 'shared' ? (
-        <>
+        <div className="px-6">
           <div className="flex bg-black/40 border border-white/5 p-1.5 rounded-2xl w-fit mb-6 shadow-inner">
             <button 
               onClick={() => setActiveTab('balances')} 
@@ -478,29 +478,29 @@ export default function FinancePage() {
         </motion.div>
         )}
           </div>
-        </>
+        </div>
       ) : (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full flex flex-col gap-6"
+          className="w-full flex flex-col gap-6 px-6"
         >
-          <div className="w-full">
-            <NetWorthSummary />
-          </div>
-          
           <div className="flex flex-col lg:flex-row gap-6 items-start">
-            <div className="flex-1 flex flex-col gap-6">
-              <MyWalletCard />
+            <div className="lg:col-span-1 flex flex-col gap-6 relative z-10 w-full lg:w-[350px]">
+              <NetWorthSummary />
               <FinancialGoals />
-              <TransactionEntry />
             </div>
-            
-            <div className="w-full lg:w-[40%] flex flex-col gap-6">
-              <DailyExpenseWidget />
-              <BudgetTracker />
-              <DebtManager />
-              <PersonalFinanceDashboard />
+            <div className="lg:col-span-3 flex flex-col w-full relative">
+              <div className="w-full sticky top-0 z-10 transition-all duration-300 shadow-2xl">
+                <MyWalletCard />
+              </div>
+              <div className="relative z-20 bg-[#0a0a0a] md:bg-transparent rounded-t-[2.5rem] md:rounded-none mt-[-3rem] md:mt-0 pt-8 pb-32 md:pb-0 px-0 md:px-0 shadow-[0_-15px_40px_rgba(0,0,0,0.5)] md:shadow-none min-h-screen flex flex-col gap-6">
+                <DailyExpenseWidget />
+                <BudgetTracker />
+                <DebtManager />
+                <PersonalFinanceDashboard />
+                <TransactionEntry />
+              </div>
             </div>
           </div>
         </motion.div>

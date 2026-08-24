@@ -84,7 +84,7 @@ export function MiniTimetableWidget({ isEditMode }: { isEditMode?: boolean }) {
   }, [courses, selectedDay]);
 
   return (
-    <div className="h-full bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden min-h-[350px]">
+    <div className="h-full bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 shadow-2xl relative flex flex-col hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300 overflow-hidden min-h-[350px]">
       {isEditMode && (
         <div className="absolute top-4 left-4 z-20 p-2 bg-white/10 rounded-full cursor-grab active:cursor-grabbing text-white/50 hover:text-white transition-colors">
           <GripVertical className="w-5 h-5" />

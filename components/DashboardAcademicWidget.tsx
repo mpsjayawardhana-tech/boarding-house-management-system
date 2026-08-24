@@ -55,7 +55,8 @@ export function DashboardAcademicWidget() {
 
   if (!isLoaded) {
     return (
-      <div className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl relative flex flex-col items-center justify-center h-full min-h-[220px]">
+      <div className="bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 shadow-2xl relative flex flex-col items-center justify-center text-center h-[280px]">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-full -translate-y-1/2 -translate-x-1/2 blur-[2rem] pointer-events-none"></div>
         <div className="animate-pulse flex flex-col items-center">
           <div className="w-12 h-12 rounded-full bg-white/5 mb-4"></div>
           <div className="h-4 w-24 bg-white/5 rounded"></div>
@@ -136,7 +137,7 @@ export function DashboardAcademicWidget() {
 
   return (
     <div 
-      className="bg-[#0B0C0E] border border-white/[0.08] rounded-[32px] p-6 shadow-2xl relative flex flex-col h-[280px] overflow-hidden hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300"
+      className="bg-[#0B0C0E] border-y md:border-x border-white/[0.08] rounded-none md:rounded-[32px] p-6 shadow-2xl relative flex flex-col h-[280px] overflow-hidden hover:bg-[#1A1D20] hover:border-white/[0.15] transition-all duration-300"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
