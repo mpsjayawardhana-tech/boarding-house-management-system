@@ -168,14 +168,14 @@ export default function FinancePage() {
       <div className="flex items-center gap-8 border-b border-white/5 mb-6 w-full px-6">
         <button 
           onClick={() => setMainTab('shared')} 
-          className={`pb-3 text-sm font-bold transition-colors relative ${mainTab === 'shared' ? 'text-emerald-400' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-3 text-sm font-bold transition-colors relative focus:outline-none focus:ring-0 ${mainTab === 'shared' ? 'text-emerald-400' : 'text-gray-400 hover:text-gray-200'}`}
         >
           Shared Expenses
           {mainTab === 'shared' && <motion.div layoutId="financeMainTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-emerald-500 rounded-t-full" />}
         </button>
         <button 
           onClick={() => setMainTab('personal')} 
-          className={`pb-3 text-sm font-bold transition-colors relative ${mainTab === 'personal' ? 'text-indigo-400' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-3 text-sm font-bold transition-colors relative focus:outline-none focus:ring-0 ${mainTab === 'personal' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-200'}`}
         >
           Personal Finance
           {mainTab === 'personal' && <motion.div layoutId="financeMainTab" className="absolute bottom-0 left-0 right-0 h-[2px] bg-indigo-500 rounded-t-full" />}
@@ -187,13 +187,13 @@ export default function FinancePage() {
           <div className="flex bg-black/40 border border-white/5 p-1.5 rounded-2xl w-fit mb-6 shadow-inner">
             <button 
               onClick={() => setActiveTab('balances')} 
-              className={`px-6 py-2 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'balances' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+              className={`px-6 py-2 text-sm font-bold rounded-xl transition-all duration-300 focus:outline-none focus:ring-0 ${activeTab === 'balances' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
             >
               Group Balances
             </button>
             <button 
               onClick={() => setActiveTab('ledger')} 
-              className={`px-6 py-2 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'ledger' ? 'bg-white/10 text-white shadow-md' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}
+              className={`px-6 py-2 text-sm font-bold rounded-xl transition-all duration-300 focus:outline-none focus:ring-0 ${activeTab === 'ledger' ? 'bg-white/10 text-white shadow-md' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
             >
               Shared Ledger
             </button>
@@ -485,12 +485,12 @@ export default function FinancePage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full flex flex-col gap-6 px-6"
         >
-          <div className="flex flex-col lg:flex-row gap-6 items-start">
-            <div className="lg:col-span-1 flex flex-col gap-6 relative z-10 w-full lg:w-[350px]">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="flex flex-col gap-6 relative z-10 w-full lg:col-span-4 xl:col-span-4">
               <NetWorthSummary />
               <FinancialGoals />
             </div>
-            <div className="lg:col-span-3 flex flex-col w-full relative">
+            <div className="flex flex-col w-full relative lg:col-span-8 xl:col-span-8">
               <div className="w-full sticky top-0 z-10 transition-all duration-300 shadow-2xl">
                 <MyWalletCard />
               </div>

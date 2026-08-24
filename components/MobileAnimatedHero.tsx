@@ -7,6 +7,7 @@ import { TrendingDown, TrendingUp, Handshake, Bell } from "lucide-react";
 import { QuickExpenseModal } from "./QuickExpenseModal";
 import { QuickIncomeModal } from "./QuickIncomeModal";
 import { QuickDebtModal } from "./QuickDebtModal";
+import { Portal } from "./Portal";
 
 export function MobileAnimatedHero() {
   const { currentUserId, users } = useAppStore();
@@ -20,8 +21,6 @@ export function MobileAnimatedHero() {
       <div className="md:hidden relative w-full pt-12 pb-24 overflow-hidden">
         {/* Gradient Overlays (Optional, kept for subtle shading) */}
         <div className="absolute inset-0 z-0 bg-gradient-to-b from-black/10 via-transparent to-[#0a0a0a]"></div>
-
-
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center px-6 mt-4 w-full">
@@ -76,9 +75,11 @@ export function MobileAnimatedHero() {
       </div>
 
       {/* Modals */}
-      {activeModal === 'expense' && <QuickExpenseModal isOpen={true} onClose={() => setActiveModal(null)} />}
-      {activeModal === 'income' && <QuickIncomeModal isOpen={true} onClose={() => setActiveModal(null)} />}
-      {activeModal === 'lend' && <QuickDebtModal isOpen={true} onClose={() => setActiveModal(null)} />}
+      <Portal>
+        {activeModal === 'expense' && <QuickExpenseModal isOpen={true} onClose={() => setActiveModal(null)} />}
+        {activeModal === 'income' && <QuickIncomeModal isOpen={true} onClose={() => setActiveModal(null)} />}
+        {activeModal === 'lend' && <QuickDebtModal isOpen={true} onClose={() => setActiveModal(null)} />}
+      </Portal>
     </>
   );
 }

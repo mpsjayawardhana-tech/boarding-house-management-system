@@ -175,13 +175,13 @@ export function FinancialGoals() {
 
           return (
             <div key={goal.id} className={`flex flex-col gap-3 p-5 rounded-2xl border ${isComplete ? 'bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-[#23252b]/50 border-[#2a2d36] hover:bg-white/5 transition-all'} group`}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${getTypeColor(goal.type)} mb-2 inline-block`}>{goal.type}</span>
-                  <h4 className="font-extrabold text-white text-base leading-tight mb-1">{goal.title}</h4>
-                  <p className="text-xs font-semibold text-emerald-400">LKR {goal.currentSaved.toLocaleString()} <span className="text-gray-500">/ {goal.targetAmount.toLocaleString()}</span></p>
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full border ${getTypeColor(goal.type)} mb-2 inline-block whitespace-nowrap`}>{goal.type}</span>
+                  <h4 className="font-extrabold text-white text-base leading-tight mb-1 truncate">{goal.title}</h4>
+                  <p className="text-xs font-semibold text-emerald-400 whitespace-nowrap">LKR {goal.currentSaved.toLocaleString()} <span className="text-gray-500">/ {goal.targetAmount.toLocaleString()}</span></p>
                 </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                   <button onClick={() => {
                     setEditingId(goal.id);
                     setFormData({ title: goal.title, targetAmount: goal.targetAmount.toString(), type: goal.type });
@@ -212,7 +212,7 @@ export function FinancialGoals() {
                   </svg>
                   <span className="absolute text-[10px] font-bold text-white">{Math.round(percentage)}%</span>
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   {addFundsId === goal.id ? (
                     <div className="flex gap-1 animate-in fade-in zoom-in-95 duration-200">
                       <input 
@@ -230,7 +230,7 @@ export function FinancialGoals() {
                     <button 
                       onClick={() => setAddFundsId(goal.id)}
                       disabled={isComplete}
-                      className={`w-full py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${isComplete ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+                      className={`w-full py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors whitespace-nowrap ${isComplete ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
                     >
                       {isComplete ? <><CheckCircle2 className="w-3.5 h-3.5" /> Goal Reached</> : <><Banknote className="w-3.5 h-3.5 text-emerald-400" /> Add Funds</>}
                     </button>

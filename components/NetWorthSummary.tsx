@@ -79,18 +79,18 @@ export function NetWorthSummary() {
 
         <div className="hidden md:block w-px h-12 bg-white/10"></div>
 
-        <div className="flex flex-wrap md:flex-nowrap gap-4 md:gap-8 flex-1 md:justify-end">
+        <div className="grid grid-cols-2 gap-4 w-full mt-4 md:mt-0 lg:flex lg:flex-wrap lg:gap-6 lg:flex-1 lg:justify-end">
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5 text-blue-400" /> Wallet</span>
-            <span className="text-lg font-bold text-white mt-0.5">LKR {stats.wallet.toLocaleString()}</span>
+            <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5 whitespace-nowrap"><Wallet className="w-3.5 h-3.5 text-blue-400" /> Wallet</span>
+            <span className="text-lg font-bold text-white mt-0.5 whitespace-nowrap">LKR {stats.wallet.toLocaleString()}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><Target className="w-3.5 h-3.5 text-emerald-400" /> Saved</span>
-            <span className="text-lg font-bold text-emerald-400 mt-0.5">LKR {stats.saved.toLocaleString()}</span>
+            <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5 whitespace-nowrap"><Target className="w-3.5 h-3.5 text-emerald-400" /> Saved</span>
+            <span className="text-lg font-bold text-emerald-400 mt-0.5 whitespace-nowrap">LKR {stats.saved.toLocaleString()}</span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5"><TrendingDown className="w-3.5 h-3.5 text-rose-400" /> Debt</span>
-            <span className="text-lg font-bold text-rose-400 mt-0.5">LKR {stats.debt.toLocaleString()}</span>
+          <div className="flex flex-col col-span-2 lg:col-span-1">
+            <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1.5 whitespace-nowrap"><TrendingDown className="w-3.5 h-3.5 text-rose-400" /> Debt</span>
+            <span className="text-lg font-bold text-rose-400 mt-0.5 whitespace-nowrap">LKR {stats.debt.toLocaleString()}</span>
           </div>
         </div>
 

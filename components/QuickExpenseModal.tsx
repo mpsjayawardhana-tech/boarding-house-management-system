@@ -59,7 +59,7 @@ export function QuickExpenseModal({ isOpen, onClose }: QuickExpenseModalProps) {
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="bg-gray-900/90 backdrop-blur-2xl shadow-2xl rounded-[32px] p-6 md:p-8 border border-white/10 max-w-md w-full relative"
+            className="relative w-full max-w-md bg-gray-900/95 border border-white/10 rounded-2xl p-6 shadow-[0_0_50px_rgba(0,0,0,0.8)] max-h-[85vh] overflow-y-auto custom-scrollbar"
           >
             <button 
               onClick={onClose} 
